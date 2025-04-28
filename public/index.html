@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mysolution Job Sync | Base Select</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2750e2;
+            --primary-light: #4a6fe9;
+            --primary-dark: #1c3cb0;
+            --button-color: #ff7300;
+            --button-hover: #e56700;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --bg-primary: #fff;
+            --bg-secondary: #f4f1ff;
+            --text-primary: #333;
+            --text-secondary: #555;
+            --text-muted: #777;
+            --border-color: #e0e0e0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+            --border-radius: 8px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 0;
+            margin: 0;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Roboto', sans-serif;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0rem;
+            color: #232535;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        header {
+            background-color: var(--bg-primary);
+            box-shadow: var(--shadow-sm);
+            padding: 1.25rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo img {
+            height: 40px;
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem 0;
+        }
+
+        button, .btn {
+            background-color: var(--button-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 0.75rem 1.25rem;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        button:hover, .btn:hover {
+            background-color: var(--button-hover);
+        }
+
+        button:disabled, .btn:disabled {
+            background-color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background-color: var(--bg-primary);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            padding: 1.5rem;
+            height: 100%;
+        }
+
+        .status-box {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .status-row:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .status-value {
+            font-weight: 500;
+            color: var(--primary-color);
+            text-align: right;
+            font-size: 0.9rem;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .toggle-label {
+            font-weight: 500;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: var(--transition);
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: var(--transition);
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px var(--primary-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .log-section {
+            margin-top: 2rem;
+        }
+
+        .log-container {
+            background-color: #272830;
+            color: #f8f8f2;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #3a3a44;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .success {
+            color: #50fa7b;
+        }
+
+        .error {
+            color: #ff5555;
+        }
+
+        .warning {
+            color: #f1fa8c;
+        }
+
+        .info {
+            color: #8be9fd;
+        }
+
+        .loader {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .api-section {
+            margin-top: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .endpoint {
+            background-color: var(--bg-primary);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-sm);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .method {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-right: 0.75rem;
+        }
+
+        .url {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 240px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.85rem;
+            font-weight: normal;
+        }
+
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        footer {
+            background-color: var(--bg-primary);
+            padding: 1.5rem 0;
+            text-align: center;
+            margin-top: 2rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .footer-content {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .badge-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .badge-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions {
+                flex-wrap: wrap;
+            }
+            
+            button, .btn {
+                width: 100%;
+            }
+            
+            .toggle-container {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        .dashboard-log-container {
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (min-width: 992px) {
+            .dashboard {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+                gap: 1.5rem;
+                margin-bottom: 2rem;
+            }
+            
+            .dashboard-log-layout {
+                display: grid;
+                grid-template-columns: 1fr 2fr;
+                gap: 1.5rem;
+                margin-bottom: 2rem;
+            }
+
+            .dashboard-log-container {
+                margin-top: 0;
+                height: 100%;
+            }
+
+            .dashboard-log-container .card {
+                height: 100%;
+            }
+
+            .dashboard-log-container .log-container {
+                height: 400px;
+            }
+        }
+
+        @media (max-width: 991px) {
+            .dashboard-log-layout {
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            
+            .dashboard-log-container {
+                margin-top: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <img src="./images/base-select-logo.png" alt="Base Select Logo">
+                    <h1>Mysolution Job Sync Dashboard</h1>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <p class="intro">This service synchronizes job data between Mysolution ATS and Webflow CMS.</p>
+        
+        <div class="actions">
+            <div class="tooltip">
+                <button id="sync-now-btn">Incremental Sync</button>
+                <span class="tooltiptext">Only syncs jobs that have been modified since the last sync. Faster and more efficient for regular updates.</span>
+            </div>
+            <div class="tooltip">
+                <button id="full-sync-btn" class="btn-primary">Full Sync</button>
+                <span class="tooltiptext">Syncs all jobs regardless of modification date. Use this to ensure complete synchronization if issues occur.</span>
+            </div>
+            <div class="toggle-container">
+                <span class="toggle-label">Auto-Publish:</span>
+                <label class="switch">
+                    <input type="checkbox" id="auto-publish-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="tooltip">
+                <button id="publish-now-btn" class="btn-primary">Publish to Webflow</button>
+                <span class="tooltiptext">Manually publish all pending changes to the Webflow staging site.</span>
+            </div>
+        </div>
+        
+        <div class="dashboard">
+            <div class="card">
+                <h2>Service Status</h2>
+                <div class="status-box">
+                    <div class="status-row">
+                        <span class="status-label">Status:</span>
+                        <span class="status-value" id="service-status">Running</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Environment:</span>
+                        <span class="status-value" id="environment">Development</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Uptime:</span>
+                        <span class="status-value" id="uptime">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Sync Status</h2>
+                <div class="status-box">
+                    <div class="status-row">
+                        <span class="status-label">Last Full Sync:</span>
+                        <span class="status-value" id="last-full-sync">Loading...</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Last Incremental Sync:</span>
+                        <span class="status-value" id="last-incremental-sync">Loading...</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Next Scheduled Sync:</span>
+                        <span class="status-value" id="next-sync">Loading...</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Auto-Publish:</span>
+                        <span class="status-value" id="publishing-status">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Job Statistics</h2>
+                <div class="status-box">
+                    <div class="status-row">
+                        <span class="status-label">Jobs in Mysolution:</span>
+                        <span class="status-value" id="mysolution-job-count">-</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Jobs in Webflow:</span>
+                        <span class="status-value" id="webflow-job-count">-</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Last Publish:</span>
+                        <span class="status-value" id="last-publish">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="dashboard-log-layout">
+            <div>
+                <div class="card">
+                    <h2>Last Sync Summary</h2>
+                    <div class="status-box">
+                        <div class="status-row">
+                            <span class="status-label">Total Jobs:</span>
+                            <span class="status-value" id="sync-total-jobs">-</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="status-label">Successfully Updated:</span>
+                            <span class="status-value" id="sync-successful">-</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="status-label">Skipped Jobs:</span>
+                            <span class="status-value" id="sync-skipped">-</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="status-label">Failed Jobs:</span>
+                            <span class="status-value" id="sync-failed">-</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="status-label">Last Sync Type:</span>
+                            <span class="status-value" id="sync-type">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard-log-container">
+                <div class="card">
+                    <h2>Sync Log</h2>
+                    <div id="log-container" class="log-container">
+                        <div class="log-entry">Initializing job sync dashboard...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <div class="card">
+                <h2>API Endpoints</h2>
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method">GET</span>
+                        <span class="url">/health</span>
+                    </div>
+                    <div class="description">Health check endpoint</div>
+                </div>
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method">POST</span>
+                        <span class="url">/api/jobs/sync</span>
+                    </div>
+                    <div class="description">Trigger a manual job sync</div>
+                </div>
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method">POST</span>
+                        <span class="url">/api/admin/reset-sync</span>
+                    </div>
+                    <div class="description">Reset sync state and trigger a full sync (requires admin API key)</div>
+                </div>
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method">GET</span>
+                        <span class="url">/api/admin/publishing/status</span>
+                    </div>
+                    <div class="description">Get publishing status (requires admin API key)</div>
+                </div>
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method">POST</span>
+                        <span class="url">/api/admin/publishing/publish</span>
+                    </div>
+                    <div class="description">Force publish all changes (requires admin API key)</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <p>© 2025 Base Select | Mysolution Job Sync Service</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Configuration
+        const adminApiKey = 'local-dev-admin-key'; // Default dev API key
+        let syncInProgress = false;
+        let publishInProgress = false;
+        let eventSource = null; // For SSE connection
+        
+        // Elements
+        const syncNowBtn = document.getElementById('sync-now-btn');
+        const fullSyncBtn = document.getElementById('full-sync-btn');
+        const publishNowBtn = document.getElementById('publish-now-btn');
+        const autoPublishToggle = document.getElementById('auto-publish-toggle');
+        const logContainer = document.getElementById('log-container');
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Start updating UI components
+            updateUptime();
+            updateServiceHealth();
+            updatePublishingStatus();
+            loadJobCounts();
+            fetchSyncInterval(); // New function to fetch sync interval
+            
+            // Connect to real-time event stream
+            connectToEventStream();
+            
+            // Set up periodic refreshes (as backup if SSE fails)
+            setInterval(updateUptime, 1000);
+            setInterval(updateServiceHealth, 30000);
+            setInterval(updatePublishingStatus, 30000);
+            setInterval(loadJobCounts, 60000);
+            
+            // Set up event listeners
+            autoPublishToggle.addEventListener('change', toggleAutoPublish);
+            syncNowBtn.addEventListener('click', triggerJobSync);
+            fullSyncBtn.addEventListener('click', triggerFullSync);
+            publishNowBtn.addEventListener('click', triggerPublish);
+            
+            // Log initialization
+            addLogEntry('Dashboard initialized successfully');
+        });
+        
+        // Connect to real-time event stream
+        function connectToEventStream() {
+            if (!!window.EventSource) {
+                // Close any existing connection
+                if (eventSource) {
+                    eventSource.close();
+                }
+                
+                // Try the correct event stream endpoint with a fallback mechanism
+                const eventEndpoints = [
+                    '/api/events',                      // Standard endpoint
+                    '/api/stream',                      // Alternative endpoint
+                    '/api/admin/events',                // Admin endpoint
+                    '/api/admin/sync/events',           // Sync-specific event stream
+                    '/api/admin/stream',                // Alternative admin endpoint
+                    '/api/admin/logs/stream'            // Logs-specific stream
+                ];
+                
+                let currentEndpointIndex = 0;
+                
+                // Keep track of processed log IDs to avoid duplicates
+                const processedLogIds = new Set();
+                
+                function tryConnectEventSource() {
+                    if (currentEndpointIndex >= eventEndpoints.length) {
+                        // We've tried all endpoints, set up polling as fallback
+                        addLogEntry('Could not establish event stream connection. Falling back to polling.', 'warning');
+                        setupPollingFallback();
+                        return;
+                    }
+                    
+                    const endpoint = eventEndpoints[currentEndpointIndex];
+                    addLogEntry(`Trying event stream endpoint: ${endpoint}`, 'info');
+                    
+                    // Include API key for admin endpoints
+                    if (endpoint.includes('/admin/')) {
+                        // For admin endpoints, we need to use a different approach since EventSource doesn't support custom headers
+                        // Try various parameter formats that the server might accept
+                        let endpointWithAuth = endpoint;
+                        
+                        // Add the token parameter
+                        endpointWithAuth += (endpointWithAuth.includes('?') ? '&' : '?');
+                        
+                        // Try all common API key parameter names
+                        endpointWithAuth += 'token=' + encodeURIComponent(adminApiKey);
+                        endpointWithAuth += '&x-api-key=' + encodeURIComponent(adminApiKey);
+                        endpointWithAuth += '&api_key=' + encodeURIComponent(adminApiKey);
+                        endpointWithAuth += '&apiKey=' + encodeURIComponent(adminApiKey);
+                        
+                        addLogEntry(`Connecting to ${endpoint} with auth token`, 'info');
+                        eventSource = new EventSource(endpointWithAuth);
+                    } else {
+                        eventSource = new EventSource(endpoint);
+                    }
+                    
+                    // Set a timeout to detect if connection fails to establish quickly
+                    const connectionTimeout = setTimeout(() => {
+                        if (eventSource.readyState !== EventSource.OPEN) {
+                            // Still not connected, try next endpoint
+                            eventSource.close();
+                            currentEndpointIndex++;
+                            tryConnectEventSource();
+                        }
+                    }, 3000);
+                    
+                    // Connection opened
+                    eventSource.addEventListener('open', function() {
+                        clearTimeout(connectionTimeout);
+                        console.log(`SSE connection established using ${endpoint}`);
+                        addLogEntry(`Real-time connection established using ${endpoint}`, 'success');
+                        localStorage.setItem('workingEventStreamEndpoint', endpoint);
+                    });
+                    
+                    // Handle log events
+                    eventSource.addEventListener('log', function(e) {
+                        try {
+                            const logData = JSON.parse(e.data);
+                            addLogEntry(logData.message, logData.level || 'info');
+                        } catch (error) {
+                            console.error('Error parsing log event:', error);
+                            addLogEntry(e.data, 'info');
+                        }
+                    });
+                    
+                    // Handle sync events
+                    eventSource.addEventListener('sync', function(e) {
+                        try {
+                            const syncData = JSON.parse(e.data);
+                            
+                            // Update sync summary if available
+                            if (syncData.syncResults) {
+                                document.getElementById('sync-total-jobs').textContent = 
+                                    syncData.syncResults.total || '-';
+                                document.getElementById('sync-successful').textContent = 
+                                    syncData.syncResults.successful || '-';
+                                document.getElementById('sync-skipped').textContent = 
+                                    syncData.syncResults.skipped || '-';
+                                document.getElementById('sync-failed').textContent = 
+                                    syncData.syncResults.failed || '-';
+                                document.getElementById('sync-type').textContent = 
+                                    syncData.syncResults.type || '-';
+                            }
+                            
+                            // Update last sync time and next scheduled sync
+                            if (syncData.lastSync) {
+                                // Update based on sync type
+                                if (syncData.syncType === 'full') {
+                                    document.getElementById('last-full-sync').textContent = 
+                                        new Date(syncData.lastSync).toLocaleString();
+                                } else if (syncData.syncType === 'incremental') {
+                                    document.getElementById('last-incremental-sync').textContent = 
+                                        new Date(syncData.lastSync).toLocaleString();
+                                }
+                                
+                                // Always update next sync time
+                                updateNextSyncTime();
+                            }
+                            
+                            // Update job counts if available
+                            if (syncData.jobCounts) {
+                                if (syncData.jobCounts.mysolution !== undefined) {
+                                    document.getElementById('mysolution-job-count').textContent = 
+                                        syncData.jobCounts.mysolution;
+                                }
+                                if (syncData.jobCounts.webflow !== undefined) {
+                                    document.getElementById('webflow-job-count').textContent = 
+                                        syncData.jobCounts.webflow;
+                                }
+                            }
+                            
+                            // Update publishing status if available
+                            if (syncData.publishTime) {
+                                document.getElementById('last-publish').textContent = 
+                                    new Date(syncData.publishTime).toLocaleString();
+                            }
+                        } catch (error) {
+                            console.error('Error parsing sync event:', error);
+                        }
+                    });
+                    
+                    // Handle errors
+                    eventSource.addEventListener('error', function(e) {
+                        console.error('SSE connection error:', e);
+                        
+                        // Check for 401/403 errors in the last few log entries (unauthorized)
+                        const logEntries = Array.from(logContainer.children);
+                        for (let i = logEntries.length - 1; i >= Math.max(0, logEntries.length - 3); i--) {
+                            if (logEntries[i].textContent.includes('Unauthorized') || 
+                                logEntries[i].textContent.includes('401') || 
+                                logEntries[i].textContent.includes('403')) {
+                                // If we detect an auth error, try a different approach
+                                addLogEntry(`Auth error detected for ${endpoint}, trying different endpoint`, 'warning');
+                                eventSource.close();
+                                currentEndpointIndex++;
+                                tryConnectEventSource();
+                                return;
+                            }
+                        }
+                        
+                        // Check if the connection is closed or in error state
+                        if (eventSource.readyState === EventSource.CLOSED || eventSource.readyState === EventSource.CONNECTING) {
+                            addLogEntry('Real-time connection lost, attempting to reconnect...', 'warning');
+                            
+                            // Try to reconnect after a delay
+                            setTimeout(function() {
+                                addLogEntry('Attempting to reconnect to event stream...', 'info');
+                                // Try the next endpoint
+                                currentEndpointIndex++;
+                                tryConnectEventSource();
+                            }, 5000);
+                        }
+                    });
+                    
+                    // Set a periodic check to verify the connection is still alive
+                    setInterval(function() {
+                        if (eventSource && eventSource.readyState === EventSource.CLOSED) {
+                            addLogEntry('Event stream connection closed, reconnecting...', 'warning');
+                            // Reset to try all endpoints again
+                            currentEndpointIndex = 0;
+                            tryConnectEventSource();
+                        }
+                    }, 30000);
+                }
+                
+                // If we previously found a working endpoint, try it first
+                const savedEndpoint = localStorage.getItem('workingEventStreamEndpoint');
+                if (savedEndpoint) {
+                    const savedIndex = eventEndpoints.indexOf(savedEndpoint);
+                    if (savedIndex >= 0) {
+                        // Move the saved endpoint to the front
+                        currentEndpointIndex = 0;
+                        eventEndpoints.splice(savedIndex, 1);
+                        eventEndpoints.unshift(savedEndpoint);
+                    }
+                }
+                
+                // Start trying endpoints
+                tryConnectEventSource();
+                
+                // Polling fallback for when SSE is not available
+                function setupPollingFallback() {
+                    addLogEntry('Setting up polling fallback for real-time updates', 'info');
+                    
+                    // Poll for logs every 5 seconds
+                    setInterval(fetchRecentLogs, 5000);
+                    
+                    // Poll for sync status every 10 seconds
+                    setInterval(fetchSyncStatus, 10000);
+                }
+                
+                async function fetchRecentLogs() {
+                    try {
+                        const response = await fetch('/api/admin/logs/recent', {
+                            headers: {
+                                'x-api-key': adminApiKey
+                            }
+                        }).catch(() => ({ ok: false }));
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.data && Array.isArray(data.data.logs)) {
+                                // Process each log entry
+                                data.data.logs.forEach(log => {
+                                    if (log.id && !processedLogIds.has(log.id)) {
+                                        addLogEntry(log.message, log.level || 'info');
+                                        processedLogIds.add(log.id);
+                                    }
+                                });
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error fetching recent logs:', error);
+                    }
+                }
+                
+                async function fetchSyncStatus() {
+                    try {
+                        updateLastSyncTime();
+                        loadJobCounts();
+                    } catch (error) {
+                        console.error('Error updating sync status:', error);
+                    }
+                }
+            } else {
+                console.warn('SSE not supported by browser');
+                addLogEntry('Real-time updates not supported by your browser', 'warning');
+            }
+        }
+        
+        // Simple uptime counter
+        const startTime = Date.now();
+        let syncIntervalMinutes = 15; // Default to 15 minutes if server config can't be fetched
+        
+        // Fetch sync interval from server
+        async function fetchSyncInterval() {
+            try {
+                const response = await fetch('/api/admin/sync/schedule/status', {
+                    headers: {
+                        'x-api-key': adminApiKey
+                    }
+                }).catch(() => ({ ok: false }));
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.data && data.data.interval) {
+                        syncIntervalMinutes = data.data.interval;
+                        addLogEntry(`Sync interval set to ${syncIntervalMinutes} minutes from server configuration`, 'info');
+                        // Update next sync time with the new interval
+                        updateNextSyncTime();
+                    } else {
+                        addLogEntry(`Using default sync interval of ${syncIntervalMinutes} minutes`, 'info');
+                    }
+                } else {
+                    addLogEntry(`Could not fetch sync interval, using default of ${syncIntervalMinutes} minutes`, 'warning');
+                }
+            } catch (error) {
+                console.error('Error fetching sync interval:', error);
+                addLogEntry(`Error fetching sync interval: ${error.message}. Using default of ${syncIntervalMinutes} minutes`, 'error');
+            } finally {
+                // Always update next sync time, regardless of whether we could fetch the interval
+                updateNextSyncTime();
+            }
+        }
+        
+        function updateUptime() {
+            const uptime = Math.floor((Date.now() - startTime) / 1000);
+            const hours = Math.floor(uptime / 3600);
+            const minutes = Math.floor((uptime % 3600) / 60);
+            const seconds = uptime % 60;
+            
+            document.getElementById('uptime').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // Update publishing status and toggle
+        async function updatePublishingStatus() {
+            try {
+                const response = await fetch('/api/admin/publishing/status', {
+                    headers: {
+                        'x-api-key': adminApiKey
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Update status display
+                    document.getElementById('publishing-status').textContent = 
+                        data.data.autoPublishEnabled ? 'Enabled' : 'Disabled';
+                    
+                    // Update toggle without triggering change event
+                    autoPublishToggle.checked = data.data.autoPublishEnabled;
+                    
+                    // Update last publish time
+                    if (data.data.lastPublishTime) {
+                        document.getElementById('last-publish').textContent = 
+                            new Date(data.data.lastPublishTime).toLocaleString();
+                    }
+                    
+                    // Update last sync time if available
+                    updateLastSyncTime();
+                }
+            } catch (error) {
+                console.error('Error fetching publishing status:', error);
+                addLogEntry(`Error fetching publishing status: ${error.message}`, 'error');
+            }
+        }
+        
+        // Update service health status
+        async function updateServiceHealth() {
+            try {
+                const response = await fetch('/health');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('service-status').textContent = data.status;
+                    document.getElementById('environment').textContent = data.environment;
+                    
+                    // Predict next sync time if possible
+                    updateNextSyncTime();
+                }
+            } catch (error) {
+                document.getElementById('service-status').textContent = 'Unavailable';
+                console.error('Error fetching health status:', error);
+                addLogEntry(`Health check failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Get the sync state to update last sync time
+        async function updateLastSyncTime() {
+            try {
+                const response = await fetch('/api/admin/sync/status', {
+                    headers: {
+                        'x-api-key': adminApiKey
+                    }
+                }).catch(() => ({ ok: false })); // Handle 404 gracefully
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.data) {
+                        // Update full sync time
+                        if (data.data.lastFullSync) {
+                            document.getElementById('last-full-sync').textContent = 
+                                new Date(data.data.lastFullSync).toLocaleString();
+                        } else {
+                            document.getElementById('last-full-sync').textContent = 'Never';
+                        }
+                        
+                        // Update incremental sync time
+                        if (data.data.lastIncrementalSync) {
+                            document.getElementById('last-incremental-sync').textContent = 
+                                new Date(data.data.lastIncrementalSync).toLocaleString();
+                        } else {
+                            document.getElementById('last-incremental-sync').textContent = 'Never';
+                        }
+                        
+                        // Update last sync metrics if available
+                        if (data.data.lastSyncResults) {
+                            document.getElementById('sync-total-jobs').textContent = 
+                                data.data.lastSyncResults.total || '-';
+                            document.getElementById('sync-successful').textContent = 
+                                data.data.lastSyncResults.successful || '-';
+                            document.getElementById('sync-skipped').textContent = 
+                                data.data.lastSyncResults.skipped || '-';
+                            document.getElementById('sync-failed').textContent = 
+                                data.data.lastSyncResults.failed || '-';
+                            document.getElementById('sync-type').textContent = 
+                                data.data.lastSyncResults.type || '-';
+                        }
+                    }
+                } else {
+                    // Fallback to checking local storage
+                    const lastFullSyncTime = localStorage.getItem('lastFullSyncTime');
+                    const lastIncrementalSyncTime = localStorage.getItem('lastIncrementalSyncTime');
+                    
+                    if (lastFullSyncTime) {
+                        document.getElementById('last-full-sync').textContent = 
+                            new Date(parseInt(lastFullSyncTime)).toLocaleString();
+                    } else {
+                        document.getElementById('last-full-sync').textContent = 'Unknown';
+                    }
+                    
+                    if (lastIncrementalSyncTime) {
+                        document.getElementById('last-incremental-sync').textContent = 
+                            new Date(parseInt(lastIncrementalSyncTime)).toLocaleString();
+                    } else {
+                        document.getElementById('last-incremental-sync').textContent = 'Unknown';
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching last sync time:', error);
+                document.getElementById('last-full-sync').textContent = 'Error';
+                document.getElementById('last-incremental-sync').textContent = 'Error';
+            }
+        }
+        
+        // Calculate and display next scheduled sync time
+        function updateNextSyncTime() {
+            try {
+                const lastSyncText = document.getElementById('last-sync').textContent;
+                if (lastSyncText && lastSyncText !== 'Loading...' && lastSyncText !== 'Unknown' && lastSyncText !== 'Error') {
+                    const lastSync = new Date(lastSyncText);
+                    
+                    // If lastSync is valid, calculate next sync
+                    if (!isNaN(lastSync.getTime())) {
+                        // Calculate next sync time based on the cron pattern (every X minutes)
+                        const nextSync = new Date(Math.ceil(lastSync.getTime() / (syncIntervalMinutes * 60 * 1000)) * (syncIntervalMinutes * 60 * 1000) + (syncIntervalMinutes * 60 * 1000));
+                        document.getElementById('next-sync').textContent = nextSync.toLocaleString();
+                        return;
+                    }
+                }
+                
+                // If we can't calculate from last sync, use current time
+                const now = new Date();
+                // Find the next interval based on current time
+                const nextSync = new Date(Math.ceil(now.getTime() / (syncIntervalMinutes * 60 * 1000)) * (syncIntervalMinutes * 60 * 1000));
+                document.getElementById('next-sync').textContent = nextSync.toLocaleString();
+            } catch (e) {
+                console.error('Error calculating next sync time:', e);
+                // Provide a reasonable fallback instead of "Unknown"
+                const now = new Date();
+                const nextSync = new Date(now.getTime() + (syncIntervalMinutes * 60 * 1000));
+                document.getElementById('next-sync').textContent = nextSync.toLocaleString();
+            }
+        }
+        
+        // Load job counts from Mysolution and Webflow
+        async function loadJobCounts() {
+            try {
+                const response = await fetch('/api/admin/jobs/count', {
+                    headers: {
+                        'x-api-key': adminApiKey
+                    }
+                }).catch(() => ({ ok: false })); // Handle 404 gracefully
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.data) {
+                        if (data.data.mysolution !== undefined) {
+                            document.getElementById('mysolution-job-count').textContent = data.data.mysolution;
+                        }
+                        
+                        if (data.data.webflow !== undefined) {
+                            document.getElementById('webflow-job-count').textContent = data.data.webflow;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching job counts:', error);
+            }
+        }
+        
+        // Toggle auto-publish setting
+        async function toggleAutoPublish() {
+            const enabled = autoPublishToggle.checked;
+            
+            try {
+                addLogEntry(`${enabled ? 'Enabling' : 'Disabling'} auto-publish...`);
+                
+                const endpoint = enabled ? '/api/admin/publishing/enable' : '/api/admin/publishing/disable';
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': adminApiKey
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addLogEntry(`Auto-publish ${enabled ? 'enabled' : 'disabled'} successfully`, 'success');
+                    
+                    // Update status display
+                    document.getElementById('publishing-status').textContent = 
+                        data.data.autoPublishEnabled ? 'Enabled' : 'Disabled';
+                } else {
+                    // Revert toggle if request failed
+                    autoPublishToggle.checked = !enabled;
+                    addLogEntry(`Failed to ${enabled ? 'enable' : 'disable'} auto-publish`, 'error');
+                }
+            } catch (error) {
+                console.error(`Error ${enabled ? 'enabling' : 'disabling'} auto-publish:`, error);
+                autoPublishToggle.checked = !enabled; // Revert toggle
+                addLogEntry(`Error ${enabled ? 'enabling' : 'disabling'} auto-publish: ${error.message}`, 'error');
+            }
+        }
+        
+        // Trigger job sync
+        async function triggerJobSync() {
+            if (syncInProgress) return;
+            
+            syncInProgress = true;
+            syncNowBtn.disabled = true;
+            syncNowBtn.innerHTML = 'Syncing... <span class="loader"></span>';
+            
+            try {
+                addLogEntry('Starting incremental job sync...');
+                
+                const response = await fetch('/api/admin/sync/run-incremental', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': adminApiKey
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Store last sync time for UI
+                    const nowTimestamp = Date.now();
+                    localStorage.setItem('lastIncrementalSyncTime', nowTimestamp);
+                    
+                    // Update last sync display immediately
+                    document.getElementById('last-incremental-sync').textContent = new Date(nowTimestamp).toLocaleString();
+                    
+                    // Update sync summary with results
+                    if (data.data) {
+                        document.getElementById('sync-successful').textContent = data.data.successful || '0';
+                        document.getElementById('sync-skipped').textContent = data.data.skipped || '0';
+                        document.getElementById('sync-failed').textContent = data.data.failed || '0';
+                        document.getElementById('sync-total-jobs').textContent = 
+                            (parseInt(data.data.successful || 0) + parseInt(data.data.skipped || 0) + parseInt(data.data.failed || 0)).toString();
+                        document.getElementById('sync-type').textContent = 'Incremental';
+                    }
+                    
+                    // Immediately calculate next sync time based on current time
+                    updateNextSyncTime();
+                    
+                    addLogEntry('Incremental job sync completed successfully', 'success');
+                    addLogEntry(`Results: ${data.data.successful} jobs updated, ${data.data.skipped} skipped, ${data.data.failed} failed`);
+                    
+                    // Refresh all other UI data 
+                    loadJobCounts();
+                } else {
+                    const errorData = await response.json();
+                    addLogEntry(`Sync failed: ${errorData.message || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error triggering job sync:', error);
+                addLogEntry(`Error triggering job sync: ${error.message}`, 'error');
+            } finally {
+                syncInProgress = false;
+                syncNowBtn.disabled = false;
+                syncNowBtn.textContent = 'Incremental Sync';
+            }
+        }
+        
+        // Full sync function
+        async function triggerFullSync() {
+            if (syncInProgress) return;
+            
+            syncInProgress = true;
+            fullSyncBtn.disabled = true;
+            fullSyncBtn.innerHTML = 'Syncing... <span class="loader"></span>';
+            
+            try {
+                addLogEntry('Starting full job sync... (This will sync ALL jobs and may take longer)', 'warning');
+                
+                const response = await fetch('/api/jobs/sync', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Store last sync time for UI
+                    const nowTimestamp = Date.now();
+                    localStorage.setItem('lastFullSyncTime', nowTimestamp);
+                    
+                    // Update last sync display immediately
+                    document.getElementById('last-full-sync').textContent = new Date(nowTimestamp).toLocaleString();
+                    
+                    // Update sync summary with results
+                    if (data.data) {
+                        document.getElementById('sync-successful').textContent = data.data.successful || '0';
+                        document.getElementById('sync-skipped').textContent = data.data.skipped || '0';
+                        document.getElementById('sync-failed').textContent = data.data.failed || '0';
+                        document.getElementById('sync-total-jobs').textContent = 
+                            (parseInt(data.data.successful || 0) + parseInt(data.data.skipped || 0) + parseInt(data.data.failed || 0)).toString();
+                        document.getElementById('sync-type').textContent = 'Full';
+                    }
+                    
+                    // Immediately calculate next sync time based on current time
+                    updateNextSyncTime();
+                    
+                    addLogEntry('Full job sync completed successfully', 'success');
+                    addLogEntry(`Results: ${data.data.successful} jobs updated, ${data.data.skipped} skipped, ${data.data.failed} failed`);
+                    
+                    // Refresh all other UI data
+                    loadJobCounts();
+                } else {
+                    const errorData = await response.json();
+                    addLogEntry(`Sync failed: ${errorData.message || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error triggering full sync:', error);
+                addLogEntry(`Error triggering full sync: ${error.message}`, 'error');
+            } finally {
+                syncInProgress = false;
+                fullSyncBtn.disabled = false;
+                fullSyncBtn.textContent = 'Full Sync';
+            }
+        }
+        
+        // Trigger publish
+        async function triggerPublish() {
+            if (publishInProgress) return;
+            
+            publishInProgress = true;
+            publishNowBtn.disabled = true;
+            publishNowBtn.innerHTML = 'Publishing... <span class="loader"></span>';
+            
+            try {
+                addLogEntry('Publishing to Webflow...');
+                
+                const response = await fetch('/api/admin/publishing/publish', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': adminApiKey
+                    },
+                    body: JSON.stringify({ reason: 'Manual publish from dashboard' })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addLogEntry('Published to Webflow successfully', 'success');
+                    
+                    // Update last publish time
+                    if (data.data && data.data.publishTime) {
+                        document.getElementById('last-publish').textContent = 
+                            new Date(data.data.publishTime).toLocaleString();
+                    }
+                } else {
+                    const errorData = await response.json();
+                    addLogEntry(`Publish failed: ${errorData.message || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error triggering publish:', error);
+                addLogEntry(`Error publishing to Webflow: ${error.message}`, 'error');
+            } finally {
+                publishInProgress = false;
+                publishNowBtn.disabled = false;
+                publishNowBtn.textContent = 'Publish to Webflow';
+            }
+        }
+        
+        // Add entry to log
+        function addLogEntry(message, level = 'info') {
+            // Skip duplicates within a time window (last 5 seconds)
+            const existingEntries = Array.from(logContainer.children);
+            const now = Date.now();
+            
+            // Check for duplicates in recent entries
+            for (let i = existingEntries.length - 1; i >= Math.max(0, existingEntries.length - 5); i--) {
+                const existingEntry = existingEntries[i];
+                const entryText = existingEntry.textContent.substring(existingEntry.textContent.indexOf(']') + 2);
+                
+                // If the message is the same and was added in the last 5 seconds, skip it
+                if (entryText === message && (now - existingEntry.dataset.timestamp < 5000)) {
+                    return; // Skip duplicate message
+                }
+            }
+            
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${level}`;
+            entry.dataset.timestamp = now;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Limit log entries to prevent excessive DOM size
+            while (logContainer.children.length > 100) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+    </script>
+</body>
+</html> 
