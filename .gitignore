@@ -55,4 +55,47 @@ implementation-*.md
 # Sample data files
 debug-job.json
 job-output*.json
-*-output.json 
+*-output.json
+
+# Ngrok temporary files
+.ngrok/
+*.ngrok.yml
+.ngrok-tunnel-url
+ngrok.yml
+.ngrok-config
+ngrok.log
+
+# Test files and debug files
+testcv.pdf
+*_test.js
+job_application_test.js
+test-*
+temp-*.js
+*.test.js
+
+# Temporarily generated webhook scripts
+direct-ngrok.sh
+webhook-*.sh
+*-tunnel.sh
+*.tunnel-url
+
+# Local development scripts and configurations
+*-local.*
+setup-local.js
+local-config.json
+.local/
+local.settings.json
+
+# Backup files
+*.bak
+*.backup
+*.old
+*~
+
+# Generated API documentation
+api-docs/
+swagger-output.json
+
+# Temporary modifications of formHandler.js with ngrok URLs
+public/formHandler.js.bak
+public/formHandler.js.tmp 
