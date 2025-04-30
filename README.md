@@ -31,9 +31,9 @@ Important: Jobs edited on Webflow will NOT sync back to Mysolution. Mysolution r
 - ✅ Job archiving using Webflow's native archiving functionality
 - ✅ Error handling and retry mechanisms
 - ✅ Logging and monitoring setup
+- ✅ Candidate form handling (Webflow → Mysolution)
 
 ### In Progress
-- 🟡 Candidate form handling (Webflow → Mysolution)
 - 🟡 Integration of both APIs
 
 ### Pending
@@ -652,3 +652,143 @@ If jobs aren't syncing properly:
 2. Use the `/api/admin/sync/test-incremental` endpoint to test with various timestamps
 3. Reset the sync state with `/api/admin/sync/reset` and run a full sync if needed
 4. Examine the debug output to identify which job fields contain modification dates 
+
+## Candidate Flow Implementation
+
+The project now supports handling candidate applications from Webflow to Mysolution with the following features:
+
+### Webflow Form Integration
+
+- **Webhook Endpoint**: `/api/webhooks/webflow/form` for receiving form submissions
+- **Direct API**: `/api/candidates/apply/:jobId` for applications submitted programmatically
+- **File Uploads**: Support for CV/resume uploads with Multer
+- **Hidden Job ID**: Automatically links applications to the correct job
+
+### Candidate Data Transformation
+
+- **Field Mapping**: Transforms Webflow form fields to Mysolution's required format
+- **File Handling**: Converts uploaded files to base64 for Mysolution
+- **Validation**: Ensures all required fields are present
+
+### Mysolution API Integration
+
+- **Apply Endpoint**: Uses Mysolution's `/services/apexrest/msf/api/job/Apply` endpoint
+- **Job Reference**: Links applications to the correct job in Mysolution
+- **Error Handling**: Robust error handling and logging
+
+### Configuration
+
+To set up Webflow forms for candidate applications:
+
+1. Create a form with the required fields (see `docs/webflow-job-application-setup.md`)
+2. Add a hidden field for the Mysolution Job ID
+3. Configure the form to submit to our webhook endpoint
+4. Set up JavaScript to populate the hidden field with the job ID from the page
+
+Example Webflow form setup:
+```html
+<form data-job-id="{{jobID}}" action="/api/webhooks/webflow/form" method="post" enctype="multipart/form-data">
+  <input type="text" name="first-name" placeholder="First Name" required>
+  <input type="text" name="last-name" placeholder="Last Name" required>
+  <input type="email" name="email" placeholder="Email" required>
+  <input type="tel" name="phone" placeholder="Phone">
+  <input type="file" name="cv" accept=".pdf,.doc,.docx,.txt">
+  <input type="hidden" name="mysolution-id" value="">
+  <button type="submit">Apply Now</button>
+</form>
+```
+
+For detailed setup instructions, refer to the `docs/webflow-job-application-setup.md` file. 
+
+# MySolution Job Application API Test
+
+This repository contains a test script to verify the MySolution job application API with different domain values.
+
+## Setup
+
+1. Install dependencies:
+```
+npm install axios fs
+```
+
+2. Prepare test CV file:
+   - Place a test PDF file named `testcv.pdf` in the root directory, or
+   - Update the `cvFilePath` variable in the script to point to your test file
+
+## Configuration
+
+The script uses the following configuration values from the Postman collection:
+- Base URL: `https://base-select.my.salesforce.com`
+- Client ID and Secret: Values from the Postman collection
+- Job ID: `a0w7Q000000qSuYQAU` (replace with an actual job ID if needed)
+
+## Running the Tests
+
+Execute the script with:
+```
+node job_application_test.js
+```
+
+## Test Domains
+
+The script tests the following domain values:
+- Empty string (default behavior)
+- `salesforce.com`
+- `base-select.my.salesforce.com`
+- `mysolution`
+
+## Expected Results
+
+For each domain test, the script will output:
+- The domain being tested
+- The result of the API call (successful application submission or error)
+
+## API Information
+
+According to the Swagger documentation, the job application endpoint accepts:
+
+- Required parameters:
+  - `id`: The job ID to apply to (query parameter)
+  - `domain`: Portal Domain Name (query parameter)
+
+- Optional parameters:
+  - UTM fields: `utm_campaign`, `utm_content`, `utm_medium`, `utm_source`, `utm_term`
+  - `status`: Custom Job Application status (defaults to "Application")
+  - `isExternalSource`: Boolean flag (affects Job Application Date)
+
+- Fields format:
+  - Each field is submitted as an object with a `value` property
+  - File fields (like CV) include `fileName` and base64-encoded `value`
+
+## Form Handler Integration
+
+The application includes a client-side form handler (`public/formHandler.js`) that can be embedded in Webflow sites to handle job application submissions. The form handler:
+
+1. Intercepts form submissions from Webflow forms
+2. Collects form data including file uploads (CV)
+3. Sends the data to the API endpoint
+4. Provides feedback to the user
+
+### Setup for Production
+
+In production environments, the form handler uses a relative URL to the API endpoint (`/api/candidates/apply`). To use this in your Webflow site:
+
+1. Upload the `formHandler.js` file to Webflow's Custom Code section
+2. Ensure your form has the attribute `data-name="Vacature Form"`
+3. Add a hidden field with the Mysolution job ID:
+   ```html
+   <input type="hidden" name="mysolution-id" value="YOUR_JOB_ID">
+   ```
+
+### Local Development
+
+For local development and testing, use the webhook tunnel script:
+
+```bash
+npm run webhook
+```
+
+This script:
+1. Creates an ngrok tunnel to your local server
+2. Automatically updates the form handler with the correct ngrok URL
+3. Allows testing form submissions locally

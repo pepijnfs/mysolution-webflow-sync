@@ -200,12 +200,12 @@ async function testSpecificJobFields(jobId = 'a0wd1000000Ju6XAAS') {
     }
     
     // Output basic job info
-    console.log(`\n📋 JOB DETAILS:`);
+    console.log('\n📋 JOB DETAILS:');
     console.log(`  - ID: ${job.Id}`);
     console.log(`  - Name: ${job.Name}`);
     
     // Analyze the three critical publication criteria fields
-    console.log(`\n🔑 PUBLICATION CRITERIA FIELDS:`);
+    console.log('\n🔑 PUBLICATION CRITERIA FIELDS:');
     
     // 1. Status - Check both potential status fields
     const status = job.msf__Status__c || job.Status || 'Unknown';
@@ -246,10 +246,10 @@ async function testSpecificJobFields(jobId = 'a0wd1000000Ju6XAAS') {
       console.log(`     Value: ${endDateValue}`);
       console.log(`     Has Expired: ${isExpired ? '❌ YES (in the past)' : '✅ NO (still valid)'}`);
     } else {
-      console.log(`  3. End Date: ❓ No end date field found in job data`);
+      console.log('  3. End Date: ❓ No end date field found in job data');
       
       // Log all date-like fields to help identify potential end date field
-      console.log(`\n🔍 All date fields in job data:`);
+      console.log('\n🔍 All date fields in job data:');
       Object.entries(job).forEach(([key, value]) => {
         if (
           key.includes('Date') || 
@@ -270,11 +270,11 @@ async function testSpecificJobFields(jobId = 'a0wd1000000Ju6XAAS') {
       publishToWeb && 
       (!endDateValue || new Date(endDateValue) >= new Date());
     
-    console.log(`\n📊 OVERALL PUBLICATION STATUS:`);
+    console.log('\n📊 OVERALL PUBLICATION STATUS:');
     console.log(`  Should be published on website: ${meetsAllCriteria ? '✅ YES' : '❌ NO'}`);
     
     // Log all fields for reference
-    console.log(`\n📄 ALL JOB FIELDS (for reference):`);
+    console.log('\n📄 ALL JOB FIELDS (for reference):');
     console.log(JSON.stringify(job, null, 2));
     
     return {

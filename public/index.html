@@ -737,153 +737,132 @@
                     addLogEntry(`Trying event stream endpoint: ${endpoint}`, 'info');
                     
                     // Include API key for admin endpoints
-                    if (endpoint.includes('/admin/')) {
-                        // For admin endpoints, we need to use a different approach since EventSource doesn't support custom headers
-                        // Try various parameter formats that the server might accept
-                        let endpointWithAuth = endpoint;
-                        
-                        // Add the token parameter
-                        endpointWithAuth += (endpointWithAuth.includes('?') ? '&' : '?');
-                        
-                        // Try all common API key parameter names
-                        endpointWithAuth += 'token=' + encodeURIComponent(adminApiKey);
-                        endpointWithAuth += '&x-api-key=' + encodeURIComponent(adminApiKey);
-                        endpointWithAuth += '&api_key=' + encodeURIComponent(adminApiKey);
-                        endpointWithAuth += '&apiKey=' + encodeURIComponent(adminApiKey);
-                        
-                        addLogEntry(`Connecting to ${endpoint} with auth token`, 'info');
-                        eventSource = new EventSource(endpointWithAuth);
+                    let endpointWithAuth = endpoint;
+                    
+                    // Add proper query parameter
+                    if (endpointWithAuth.includes('?')) {
+                        endpointWithAuth += '&';
                     } else {
-                        eventSource = new EventSource(endpoint);
+                        endpointWithAuth += '?';
                     }
                     
-                    // Set a timeout to detect if connection fails to establish quickly
-                    const connectionTimeout = setTimeout(() => {
-                        if (eventSource.readyState !== EventSource.OPEN) {
-                            // Still not connected, try next endpoint
-                            eventSource.close();
-                            currentEndpointIndex++;
-                            tryConnectEventSource();
-                        }
-                    }, 3000);
+                    // Only add a single API key parameter to avoid confusion
+                    if (endpoint.includes('/admin/')) {
+                        endpointWithAuth += 'api_key=' + encodeURIComponent(adminApiKey);
+                    }
                     
-                    // Connection opened
-                    eventSource.addEventListener('open', function() {
-                        clearTimeout(connectionTimeout);
-                        console.log(`SSE connection established using ${endpoint}`);
-                        addLogEntry(`Real-time connection established using ${endpoint}`, 'success');
-                        localStorage.setItem('workingEventStreamEndpoint', endpoint);
-                    });
+                    // Set a reconnection timer to detect server reboots
+                    let reconnectTimer = null;
                     
-                    // Handle log events
-                    eventSource.addEventListener('log', function(e) {
-                        try {
-                            const logData = JSON.parse(e.data);
-                            addLogEntry(logData.message, logData.level || 'info');
-                        } catch (error) {
-                            console.error('Error parsing log event:', error);
-                            addLogEntry(e.data, 'info');
-                        }
-                    });
-                    
-                    // Handle sync events
-                    eventSource.addEventListener('sync', function(e) {
-                        try {
-                            const syncData = JSON.parse(e.data);
-                            
-                            // Update sync summary if available
-                            if (syncData.syncResults) {
-                                document.getElementById('sync-total-jobs').textContent = 
-                                    syncData.syncResults.total || '-';
-                                document.getElementById('sync-successful').textContent = 
-                                    syncData.syncResults.successful || '-';
-                                document.getElementById('sync-skipped').textContent = 
-                                    syncData.syncResults.skipped || '-';
-                                document.getElementById('sync-failed').textContent = 
-                                    syncData.syncResults.failed || '-';
-                                document.getElementById('sync-type').textContent = 
-                                    syncData.syncResults.type || '-';
-                            }
-                            
-                            // Update last sync time and next scheduled sync
-                            if (syncData.lastSync) {
-                                // Update based on sync type
-                                if (syncData.syncType === 'full') {
-                                    document.getElementById('last-full-sync').textContent = 
-                                        new Date(syncData.lastSync).toLocaleString();
-                                } else if (syncData.syncType === 'incremental') {
-                                    document.getElementById('last-incremental-sync').textContent = 
-                                        new Date(syncData.lastSync).toLocaleString();
-                                }
-                                
-                                // Always update next sync time
-                                updateNextSyncTime();
-                            }
-                            
-                            // Update job counts if available
-                            if (syncData.jobCounts) {
-                                if (syncData.jobCounts.mysolution !== undefined) {
-                                    document.getElementById('mysolution-job-count').textContent = 
-                                        syncData.jobCounts.mysolution;
-                                }
-                                if (syncData.jobCounts.webflow !== undefined) {
-                                    document.getElementById('webflow-job-count').textContent = 
-                                        syncData.jobCounts.webflow;
-                                }
-                            }
-                            
-                            // Update publishing status if available
-                            if (syncData.publishTime) {
-                                document.getElementById('last-publish').textContent = 
-                                    new Date(syncData.publishTime).toLocaleString();
-                            }
-                        } catch (error) {
-                            console.error('Error parsing sync event:', error);
-                        }
-                    });
-                    
-                    // Handle errors
-                    eventSource.addEventListener('error', function(e) {
+                    // Event source error handler
+                    const handleError = function(e) {
                         console.error('SSE connection error:', e);
                         
-                        // Check for 401/403 errors in the last few log entries (unauthorized)
-                        const logEntries = Array.from(logContainer.children);
-                        for (let i = logEntries.length - 1; i >= Math.max(0, logEntries.length - 3); i--) {
-                            if (logEntries[i].textContent.includes('Unauthorized') || 
-                                logEntries[i].textContent.includes('401') || 
-                                logEntries[i].textContent.includes('403')) {
-                                // If we detect an auth error, try a different approach
-                                addLogEntry(`Auth error detected for ${endpoint}, trying different endpoint`, 'warning');
-                                eventSource.close();
-                                currentEndpointIndex++;
-                                tryConnectEventSource();
-                                return;
-                            }
+                        // Clear any existing reconnection timer
+                        if (reconnectTimer) {
+                            clearTimeout(reconnectTimer);
                         }
                         
-                        // Check if the connection is closed or in error state
-                        if (eventSource.readyState === EventSource.CLOSED || eventSource.readyState === EventSource.CONNECTING) {
-                            addLogEntry('Real-time connection lost, attempting to reconnect...', 'warning');
-                            
-                            // Try to reconnect after a delay
-                            setTimeout(function() {
-                                addLogEntry('Attempting to reconnect to event stream...', 'info');
-                                // Try the next endpoint
-                                currentEndpointIndex++;
-                                tryConnectEventSource();
-                            }, 5000);
-                        }
-                    });
-                    
-                    // Set a periodic check to verify the connection is still alive
-                    setInterval(function() {
-                        if (eventSource && eventSource.readyState === EventSource.CLOSED) {
-                            addLogEntry('Event stream connection closed, reconnecting...', 'warning');
-                            // Reset to try all endpoints again
-                            currentEndpointIndex = 0;
+                        // Set a new timer to attempt reconnection after delay
+                        reconnectTimer = setTimeout(function() {
+                            addLogEntry('Attempting to reconnect to event stream...', 'info');
+                            eventSource.close();
+                            currentEndpointIndex = (currentEndpointIndex + 1) % eventEndpoints.length; // Cycle through endpoints
                             tryConnectEventSource();
-                        }
-                    }, 30000);
+                        }, 2000); // 2 second delay
+                    };
+                    
+                    try {
+                        // Create a new EventSource connection
+                        eventSource = new EventSource(endpointWithAuth);
+                        
+                        // Connection opened handler
+                        eventSource.addEventListener('open', function() {
+                            // Clear reconnection timer if successful
+                            if (reconnectTimer) {
+                                clearTimeout(reconnectTimer);
+                                reconnectTimer = null;
+                            }
+                            
+                            console.log(`SSE connection established using ${endpoint}`);
+                            addLogEntry(`Real-time connection established using ${endpoint}`, 'success');
+                            localStorage.setItem('workingEventStreamEndpoint', endpoint);
+                        });
+                        
+                        // Handle log events
+                        eventSource.addEventListener('log', function(e) {
+                            try {
+                                const logData = JSON.parse(e.data);
+                                addLogEntry(logData.message, logData.level || 'info');
+                            } catch (error) {
+                                console.error('Error parsing log event:', error);
+                                addLogEntry(e.data, 'info');
+                            }
+                        });
+                        
+                        // Handle sync events
+                        eventSource.addEventListener('sync', function(e) {
+                            try {
+                                const syncData = JSON.parse(e.data);
+                                
+                                // Update sync summary if available
+                                if (syncData.syncResults) {
+                                    document.getElementById('sync-total-jobs').textContent = 
+                                        syncData.syncResults.total || '-';
+                                    document.getElementById('sync-successful').textContent = 
+                                        syncData.syncResults.successful || '-';
+                                    document.getElementById('sync-skipped').textContent = 
+                                        syncData.syncResults.skipped || '-';
+                                    document.getElementById('sync-failed').textContent = 
+                                        syncData.syncResults.failed || '-';
+                                    document.getElementById('sync-type').textContent = 
+                                        syncData.syncResults.type || '-';
+                                }
+                                
+                                // Update last sync time and next scheduled sync
+                                if (syncData.lastSync) {
+                                    // Update based on sync type
+                                    if (syncData.syncType === 'full') {
+                                        document.getElementById('last-full-sync').textContent = 
+                                            new Date(syncData.lastSync).toLocaleString();
+                                    } else if (syncData.syncType === 'incremental') {
+                                        document.getElementById('last-incremental-sync').textContent = 
+                                            new Date(syncData.lastSync).toLocaleString();
+                                    }
+                                    
+                                    // Always update next sync time
+                                    updateNextSyncTime();
+                                }
+                                
+                                // Update job counts if available
+                                if (syncData.jobCounts) {
+                                    if (syncData.jobCounts.mysolution !== undefined) {
+                                        document.getElementById('mysolution-job-count').textContent = 
+                                            syncData.jobCounts.mysolution;
+                                    }
+                                    if (syncData.jobCounts.webflow !== undefined) {
+                                        document.getElementById('webflow-job-count').textContent = 
+                                            syncData.jobCounts.webflow;
+                                    }
+                                }
+                                
+                                // Update publishing status if available
+                                if (syncData.publishTime) {
+                                    document.getElementById('last-publish').textContent = 
+                                        new Date(syncData.publishTime).toLocaleString();
+                                }
+                            } catch (error) {
+                                console.error('Error parsing sync event:', error);
+                            }
+                        });
+                        
+                        // Handle errors
+                        eventSource.addEventListener('error', handleError);
+                        
+                    } catch (error) {
+                        console.error('Error creating EventSource:', error);
+                        handleError(error);
+                    }
                 }
                 
                 // If we previously found a working endpoint, try it first
@@ -901,49 +880,28 @@
                 // Start trying endpoints
                 tryConnectEventSource();
                 
+                // Add a listener for visibility changes to handle browser tab switching
+                document.addEventListener('visibilitychange', function() {
+                    if (document.visibilityState === 'visible') {
+                        // When the tab becomes visible, check if the connection is still alive
+                        if (eventSource && eventSource.readyState === EventSource.CLOSED) {
+                            addLogEntry('Connection lost while tab was inactive, reconnecting...', 'info');
+                            eventSource.close();
+                            currentEndpointIndex = 0; // Start from the beginning
+                            tryConnectEventSource();
+                        }
+                    }
+                });
+                
                 // Polling fallback for when SSE is not available
                 function setupPollingFallback() {
                     addLogEntry('Setting up polling fallback for real-time updates', 'info');
                     
-                    // Poll for logs every 5 seconds
-                    setInterval(fetchRecentLogs, 5000);
+                    // Poll for logs every 30 seconds instead of 5 seconds
+                    setInterval(fetchRecentLogs, 30000);
                     
-                    // Poll for sync status every 10 seconds
-                    setInterval(fetchSyncStatus, 10000);
-                }
-                
-                async function fetchRecentLogs() {
-                    try {
-                        const response = await fetch('/api/admin/logs/recent', {
-                            headers: {
-                                'x-api-key': adminApiKey
-                            }
-                        }).catch(() => ({ ok: false }));
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data.data && Array.isArray(data.data.logs)) {
-                                // Process each log entry
-                                data.data.logs.forEach(log => {
-                                    if (log.id && !processedLogIds.has(log.id)) {
-                                        addLogEntry(log.message, log.level || 'info');
-                                        processedLogIds.add(log.id);
-                                    }
-                                });
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Error fetching recent logs:', error);
-                    }
-                }
-                
-                async function fetchSyncStatus() {
-                    try {
-                        updateLastSyncTime();
-                        loadJobCounts();
-                    } catch (error) {
-                        console.error('Error updating sync status:', error);
-                    }
+                    // Poll for sync status every 60 seconds instead of 10 seconds
+                    setInterval(fetchSyncStatus, 60000);
                 }
             } else {
                 console.warn('SSE not supported by browser');
@@ -1053,7 +1011,8 @@
         // Get the sync state to update last sync time
         async function updateLastSyncTime() {
             try {
-                const response = await fetch('/api/admin/sync/status', {
+                // Add cache=dashboard parameter to use server caching
+                const response = await fetch('/api/admin/sync/status?cache=dashboard', {
                     headers: {
                         'x-api-key': adminApiKey
                     }
@@ -1151,7 +1110,8 @@
         // Load job counts from Mysolution and Webflow
         async function loadJobCounts() {
             try {
-                const response = await fetch('/api/admin/jobs/count', {
+                // Add cache=dashboard parameter to use server caching
+                const response = await fetch('/api/admin/jobs/count?cache=dashboard', {
                     headers: {
                         'x-api-key': adminApiKey
                     }
@@ -1404,6 +1364,45 @@
             // Limit log entries to prevent excessive DOM size
             while (logContainer.children.length > 100) {
                 logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+
+        async function fetchRecentLogs() {
+            try {
+                const response = await fetch('/api/admin/logs/recent?api_key=' + encodeURIComponent(adminApiKey), {
+                    headers: {
+                        'x-api-key': adminApiKey
+                    }
+                }).catch(() => ({ ok: false }));
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.data && Array.isArray(data.data.logs)) {
+                        // Process each log entry
+                        data.data.logs.forEach(log => {
+                            if (log.id && !processedLogIds.has(log.id)) {
+                                addLogEntry(log.message, log.level || 'info');
+                                processedLogIds.add(log.id);
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching recent logs:', error);
+            }
+        }
+
+        async function fetchSyncStatus() {
+            try {
+                updateLastSyncTime();
+                // Limit job count updates to once per minute
+                const now = Date.now();
+                if (!window.lastJobCountUpdate || now - window.lastJobCountUpdate > 60000) {
+                    loadJobCounts();
+                    window.lastJobCountUpdate = now;
+                }
+            } catch (error) {
+                console.error('Error updating sync status:', error);
             }
         }
     </script>

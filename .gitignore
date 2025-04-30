@@ -8,6 +8,7 @@ jspm_packages/
 .env.development.local
 .env.test.local
 .env.production.local
+.direct-ngrok.sh
 
 # Logs
 logs

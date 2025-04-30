@@ -226,7 +226,7 @@ function recordSyncError(error) {
     saveSyncState(state);
     return state;
   } catch (stateError) {
-    console.error(`Error while recording sync error:`, stateError);
+    console.error('Error while recording sync error:', stateError);
     logger.error('Failed to record sync error in state', {
       errorId,
       originalError: error.message,
@@ -244,7 +244,7 @@ function resetSyncState() {
   const defaultState = { ...DEFAULT_SYNC_STATE };
   // Explicitly ensure jobModificationDates is initialized as an empty object
   defaultState.jobModificationDates = {};
-  console.log(`Reset sync state with empty job modification dates object`);
+  console.log('Reset sync state with empty job modification dates object');
   
   saveSyncState(defaultState);
   return defaultState;
@@ -328,7 +328,7 @@ function jobNeedsUpdate(jobId, modificationDate) {
  */
 function updateJobModificationDate(jobId, modificationDate) {
   if (!jobId || !modificationDate) {
-    console.log(`Cannot update job modification date: missing jobId or modificationDate`);
+    console.log('Cannot update job modification date: missing jobId or modificationDate');
     return;
   }
   

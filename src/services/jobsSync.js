@@ -36,11 +36,11 @@ async function incrementalJobsSync() {
     
     // After regular sync, also check for jobs that need to be unpublished
     // This is necessary because changing publication criteria fields may not update LastModifiedDate
-    console.log(`\n=== 🔍 ADDITIONAL CHECK: Scanning for jobs that need to be unpublished ===`);
+    console.log('\n=== 🔍 ADDITIONAL CHECK: Scanning for jobs that need to be unpublished ===');
     logger.info('Performing additional check for jobs that need to be unpublished');
     
     // 1. Get all jobs from Mysolution (regardless of modification date)
-    console.log(`📥 Fetching all jobs from Mysolution for publication check...`);
+    console.log('📥 Fetching all jobs from Mysolution for publication check...');
     const allMysolutionJobs = await mysolutionAPI.getJobs();
     console.log(`📊 Retrieved ${allMysolutionJobs.length} total jobs from Mysolution`);
     
@@ -53,7 +53,7 @@ async function incrementalJobsSync() {
     console.log(`📊 ${publishableJobIds.size} jobs meet publication criteria`);
     
     // 3. Get all jobs from Webflow that are currently published (not archived)
-    console.log(`📥 Retrieving current jobs from Webflow...`);
+    console.log('📥 Retrieving current jobs from Webflow...');
     const webflowJobsResponse = await webflowAPI.getJobs();
     const webflowJobs = (webflowJobsResponse.items || []).filter(job => 
       !job.isArchived
@@ -118,7 +118,7 @@ async function incrementalJobsSync() {
       // Publish changes to Webflow if any jobs were successfully unpublished
       if (unpublishSuccessful > 0) {
         console.log('\n=== 📡 PUBLISHING CHANGES ===');
-        console.log(`ℹ️ Attempting to publish unpublishing changes to make them visible on the website...`);
+        console.log('ℹ️ Attempting to publish unpublishing changes to make them visible on the website...');
         try {
           await publishingService.publishIfEnabled(`Unpublished ${unpublishSuccessful} jobs due to publication criteria changes`);
         } catch (error) {
@@ -128,14 +128,14 @@ async function incrementalJobsSync() {
       }
       
       // Print final summary for unpublish operations
-      console.log(`\n====== 🏁 UNPUBLISH RESULTS ======`);
+      console.log('\n====== 🏁 UNPUBLISH RESULTS ======');
       console.log(`📊 UNPUBLISHED JOBS: ${unpublishSuccessful} of ${jobsToUnpublish.length} processed successfully`);
       if (unpublishFailed > 0) {
         console.log(`❌ FAILED UNPUBLISHES: ${unpublishFailed} (check logs for details)`);
       }
     } else {
-      console.log(`\n=== ✓ NO JOBS NEED TO BE UNPUBLISHED ===`);
-      console.log(`ℹ️ All jobs in Webflow meet current publication criteria`);
+      console.log('\n=== ✓ NO JOBS NEED TO BE UNPUBLISHED ===');
+      console.log('ℹ️ All jobs in Webflow meet current publication criteria');
     }
     
     return syncResults;
@@ -171,10 +171,10 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
         const diffMinutes = Math.floor((now - lastSyncDate) / (1000 * 60));
         console.log(`⏱️ Time since last sync: ${diffMinutes} minutes`);
       } else {
-        console.log(`ℹ️ INCREMENTAL SYNC: No previous sync time found. Will perform full sync instead.`);
+        console.log('ℹ️ INCREMENTAL SYNC: No previous sync time found. Will perform full sync instead.');
       }
     } else {
-      console.log(`ℹ️ FULL SYNC: Will update all jobs regardless of modification time.`);
+      console.log('ℹ️ FULL SYNC: Will update all jobs regardless of modification time.');
     }
     
     // Fetch jobs from Mysolution (all or only changed)
@@ -240,8 +240,8 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
       
       // If no jobs need updating after filtering, we can stop here
       if (mysolutionJobs.length === 0) {
-        console.log(`✅ SYNC COMPLETE: No jobs need to be updated! All jobs are already in sync.`);
-        logger.info(`No jobs need updating after date filtering. Updating sync timestamp and exiting.`);
+        console.log('✅ SYNC COMPLETE: No jobs need to be updated! All jobs are already in sync.');
+        logger.info('No jobs need updating after date filtering. Updating sync timestamp and exiting.');
         
         // Still update the last sync time, even though no changes were made
         syncStateStore.updateLastSyncTime();
@@ -276,7 +276,7 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
       mysolutionJobs = publishableJobs;
       
       // Log reasons why jobs are not publishable
-      console.log(`\n=== 📋 DETAILS OF UNPUBLISHABLE JOBS ===`);
+      console.log('\n=== 📋 DETAILS OF UNPUBLISHABLE JOBS ===');
       allFetchedJobs.forEach(job => {
         if (!shouldJobBePublished(job)) {
           console.log(`Job "${job.Name}" (${job.Id}) cannot be published because:`);
@@ -284,7 +284,7 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
             console.log(`  • Status is "${job.msf__Status__c}" instead of "Online"`);
           }
           if (!job.msf__Show_On_Website__c) {
-            console.log(`  • "Show on Website" is not enabled`);
+            console.log('  • "Show on Website" is not enabled');
           }
           if (job.msf__On_Website_To__c && new Date(job.msf__On_Website_To__c) < new Date()) {
             console.log(`  • End date (${job.msf__On_Website_To__c}) is in the past`);
@@ -296,7 +296,7 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
     logger.info(`After publication criteria filtering: ${mysolutionJobs.length} jobs will be published`);
     
     // Fetch existing jobs from Webflow
-    console.log(`📥 Retrieving current jobs from Webflow website...`);
+    console.log('📥 Retrieving current jobs from Webflow website...');
     const webflowJobsResponse = await webflowAPI.getJobs();
     const webflowJobs = webflowJobsResponse.items || [];
     logger.info(`Fetched ${webflowJobs.length} jobs from Webflow`);
@@ -332,7 +332,7 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
           console.log(`⚠️ WARNING: Job ${jobId} is missing modification date information`);
         }
         
-        console.log(`🔍 Converting job data to Webflow format...`);
+        console.log('🔍 Converting job data to Webflow format...');
         
         // Transform job to Webflow format - now returns a Promise
         const webflowJobData = await transformMysolutionToWebflow(mysolutionJob);
@@ -346,18 +346,18 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
           if (existingWebflowJob.isArchived === true) {
             console.log(`🔄 REACTIVATING previously archived job "${mysolutionJob.Name}" in Webflow`);
             result = await webflowAPI.updateJob(existingWebflowJob.id, webflowJobData);
-            console.log(`✅ Job reactivated successfully!`);
+            console.log('✅ Job reactivated successfully!');
           } else {
             // Update existing job in Webflow
             console.log(`📝 UPDATING existing job "${mysolutionJob.Name}" in Webflow`);
             result = await webflowAPI.updateJob(existingWebflowJob.id, webflowJobData);
-            console.log(`✅ Job updated successfully!`);
+            console.log('✅ Job updated successfully!');
           }
         } else {
           // Create new job in Webflow
           console.log(`🆕 CREATING new job "${mysolutionJob.Name}" in Webflow`);
           result = await webflowAPI.createJob(webflowJobData);
-          console.log(`✅ New job created successfully!`);
+          console.log('✅ New job created successfully!');
         }
         
         return { id: jobId, success: true, result, modified: mysolutionJob.LastModifiedDate };
@@ -373,7 +373,7 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
     
     // Update job modification dates ONLY for successfully processed jobs
     // This ensures we only store dates for jobs we've actually updated
-    console.log(`Storing modification dates for successfully processed jobs`);
+    console.log('Storing modification dates for successfully processed jobs');
     const jobDates = {};
     results.forEach(result => {
       if (result.status === 'fulfilled' && result.value.success && result.value.modified) {
@@ -456,13 +456,13 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
       
       if (jobsToRemoveCompletely.length > 0 || jobsToArchive.length > 0) {
         logger.info(`Found ${jobsToRemoveCompletely.length} jobs to remove and ${jobsToArchive.length} jobs to archive in Webflow`);
-        console.log(`\n=== 🗃️ ARCHIVING/REMOVING JOBS ===`);
+        console.log('\n=== 🗃️ ARCHIVING/REMOVING JOBS ===');
         console.log(`ℹ️ Found ${jobsToRemoveCompletely.length} jobs that no longer exist in Mysolution`);
         console.log(`ℹ️ Found ${jobsToArchive.length} jobs that exist but don't meet publication criteria`);
         
         // Process jobs to archive (they exist in Mysolution but don't meet criteria)
         if (jobsToArchive.length > 0) {
-          console.log(`\n=== 🗃️ ARCHIVING JOBS ===`);
+          console.log('\n=== 🗃️ ARCHIVING JOBS ===');
           
           // Update jobs to archived status
           const archivePromises = jobsToArchive.map(async (job) => {
@@ -510,7 +510,7 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
         let removedJobsArchiveFailed = 0;
         
         if (jobsToRemoveCompletely.length > 0) {
-          console.log(`\n=== 🗃️ ARCHIVING JOBS NO LONGER IN MYSOLUTION ===`);
+          console.log('\n=== 🗃️ ARCHIVING JOBS NO LONGER IN MYSOLUTION ===');
           console.log(`ℹ️ Found ${jobsToRemoveCompletely.length} jobs that no longer exist in Mysolution`);
           
           // Archive jobs that no longer exist in Mysolution instead of deleting them
@@ -544,8 +544,8 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
           logger.info(`Job archiving for removed jobs completed. ${removedJobsArchiveSuccessful} jobs archived successfully, ${removedJobsArchiveFailed} jobs failed to archive`);
         }
       } else {
-        console.log(`\n=== ✓ NO JOBS TO ARCHIVE OR REMOVE ===`);
-        console.log(`ℹ️ All jobs in Webflow are still valid - no jobs need to be archived or removed`);
+        console.log('\n=== ✓ NO JOBS TO ARCHIVE OR REMOVE ===');
+        console.log('ℹ️ All jobs in Webflow are still valid - no jobs need to be archived or removed');
       }
     }
     
@@ -586,9 +586,9 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
     if (totalProcessed > 0) {
       console.log(`\n🎉 SYNC SUCCESSFUL! Total ${totalProcessed} changes applied to the website.`);
     } else {
-      console.log(`\n✅ SYNC COMPLETE! No changes were needed - everything is already up to date.`);
+      console.log('\n✅ SYNC COMPLETE! No changes were needed - everything is already up to date.');
     }
-    console.log(`====================================================\n`);
+    console.log('====================================================\n');
     
     // Return summary
     return {

@@ -7,7 +7,13 @@
   "scripts": {
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint --fix src/**/*.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "webhook": "node scripts/setup-webhook-tunnel.js",
+    "test": "mocha 'src/test/**/*.test.js'",
+    "test:candidate": "mocha 'src/test/candidate-submit.test.js'",
+    "test:job-application": "mocha 'src/test/job-application-api.test.js'",
+    "test:job-minimal": "mocha 'src/test/job-application-minimal.test.js'",
+    "test:api": "mocha 'src/test/*-api.test.js'"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +28,7 @@
     "express": "^5.1.0",
     "express-winston": "^4.2.0",
     "mocha": "^11.1.0",
+    "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
     "slugify": "^1.6.6",
     "uuid": "^11.1.0",

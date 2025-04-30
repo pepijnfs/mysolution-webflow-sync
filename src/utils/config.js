@@ -85,7 +85,7 @@ const config = {
   
   // Logging settings
   logging: {
-    level: process.env.LOG_LEVEL || 'info',
+    level: process.env.LOG_LEVEL || 'warn',
     file: process.env.LOG_FILE || path.join(rootDir, 'logs/app.log'),
     maxSize: process.env.LOG_MAX_SIZE || '10m',
     maxFiles: parseInt(process.env.LOG_MAX_FILES || '7', 10),
@@ -94,10 +94,10 @@ const config = {
     zippedArchive: process.env.LOG_ZIPPED_ARCHIVE === 'true',
     // HTTP Request logging settings
     httpRequestLogging: process.env.HTTP_REQUEST_LOGGING !== 'false', 
-    httpLogLevel: process.env.HTTP_LOG_LEVEL || 'info',
+    httpLogLevel: process.env.HTTP_LOG_LEVEL || 'warn',
     httpLogFormat: process.env.HTTP_LOG_FORMAT || 'combined',
     // Skip certain routes from logging
-    skipRoutes: (process.env.LOG_SKIP_ROUTES || '/health,/static').split(','),
+    skipRoutes: (process.env.LOG_SKIP_ROUTES || '/health,/static,/api/admin/jobs/count,/api/admin/sync/status').split(','),
     // Request ID settings
     requestIdHeader: process.env.REQUEST_ID_HEADER || 'x-request-id',
     generateRequestId: process.env.GENERATE_REQUEST_ID !== 'false',

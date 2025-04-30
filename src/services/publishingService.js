@@ -85,7 +85,7 @@ class PublishingService {
     if (timeRemaining > 0) {
       console.log(`⏳ Wait time before next publish: ${timeRemaining}ms`);
     } else {
-      console.log(`✅ Minimum waiting period has passed, can publish now`);
+      console.log('✅ Minimum waiting period has passed, can publish now');
     }
 
     // Check if we need to throttle publishing
@@ -158,7 +158,7 @@ class PublishingService {
       const publishTime = new Date(publishedOn).toLocaleTimeString();
       
       console.log(`✅ PUBLISH SUCCESSFUL! Published at: ${publishTime}`);
-      console.log(`ℹ️ All job changes are now live on the website.`);
+      console.log('ℹ️ All job changes are now live on the website.');
       logger.info('Successfully published Webflow site changes', {
         reason,
         publishedOn
@@ -177,8 +177,8 @@ class PublishingService {
     } catch (error) {
       console.error(`\n==== ❌ PUBLISH OPERATION FAILED (${reason}) ====`);
       console.error(`❌ Error: ${error.message}`);
-      console.error(`ℹ️ Your content changes have been saved to Webflow but not published to the live site.`);
-      console.error(`ℹ️ You can try publishing again manually through the dashboard or wait for the next automatic publish attempt.`);
+      console.error('ℹ️ Your content changes have been saved to Webflow but not published to the live site.');
+      console.error('ℹ️ You can try publishing again manually through the dashboard or wait for the next automatic publish attempt.');
       
       logger.error('Failed to publish Webflow site changes', {
         reason,

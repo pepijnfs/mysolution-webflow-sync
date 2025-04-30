@@ -717,8 +717,8 @@ class WebflowAPI {
         jobData['slug'] = jobData['slug']
           .toLowerCase()
           .replace(/\s+/g, '-')
-          .replace(/[^\w\-]+/g, '')
-          .replace(/\-\-+/g, '-')
+          .replace(/[^\w-]+/g, '')
+          .replace(/--+/g, '-')
           .replace(/^-+/, '')
           .replace(/-+$/, '');
       }
@@ -754,7 +754,7 @@ class WebflowAPI {
    * @returns {Promise<object>} Update result
    */
   async archiveJob(jobId) {
-    console.log(`===== ARCHIVING JOB IN WEBFLOW =====`);
+    console.log('===== ARCHIVING JOB IN WEBFLOW =====');
     console.log(`Archiving job ID: ${jobId}`);
     
     try {
@@ -958,103 +958,118 @@ class WebflowAPI {
   }
   
   /**
-   * Find a sector by name
-   * @param {string} sectorName - Name of the sector to find
-   * @returns {Promise<Object|null>} Sector object or null if not found
+   * Find a sector by name with fuzzy matching
+   * Uses multiple matching techniques to find the closest match
+   * @param {string} sectorName - The sector name to find
+   * @returns {Promise<Object|null>} - The found sector or null
    */
   async findSectorByName(sectorName) {
-    if (!sectorName) {
-      return null;
-    }
-    
     try {
-      // Get all sectors
-      const sectors = await this.getAllSectors();
-      
-      // If we don't have any sectors, log and return null
-      if (!sectors || sectors.length === 0) {
-        logger.warn(`No sectors available in collection when looking for "${sectorName}"`);
+      // Safety check
+      if (!sectorName) {
+        logger.warn('Cannot find sector without a name');
         return null;
       }
       
-      // Log the actual fields in the first sector to help with debugging
-      if (sectors.length > 0) {
-        logger.debug(`Sample sector data structure: ${JSON.stringify(sectors[0])}`);
+      const allSectors = await this.getAllSectors();
+      
+      if (!allSectors || allSectors.length === 0) {
+        logger.warn('No sectors found in Webflow');
+        return null;
       }
       
-      // Normalize the search name (lowercase, trim, remove special chars)
-      const normalizedSearch = sectorName.toLowerCase()
-        .trim()
-        .replace(/&/g, 'and')
-        .replace(/[^\w\s]/g, ' ')
-        .replace(/\s+/g, ' ');
+      // Step 1: Try exact match (case insensitive)
+      const exactMatch = allSectors.find(
+        sector => sector.name.toLowerCase() === sectorName.toLowerCase()
+      );
       
-      logger.debug(`Looking for sector match for "${sectorName}" (normalized: "${normalizedSearch}")`);
+      if (exactMatch) {
+        logger.debug(`Found exact sector match for "${sectorName}": ${exactMatch.name} (${exactMatch._id})`);
+        return exactMatch;
+      }
       
-      // Define matching strategies in order of preference
-      const matchStrategies = [
-        // 1. Exact match on name field
-        s => s.name && s.name.toLowerCase() === normalizedSearch,
-        
-        // 2. Exact match on fieldData.name if available
-        s => s.fieldData && s.fieldData.name && 
-             s.fieldData.name.toLowerCase() === normalizedSearch,
-        
-        // 3. Normalized match (remove special chars, standardize spacing)
-        s => {
-          const name = s.name || (s.fieldData && s.fieldData.name) || '';
-          const normalizedName = name.toLowerCase()
-            .trim()
-            .replace(/&/g, 'and')
-            .replace(/[^\w\s]/g, ' ')
-            .replace(/\s+/g, ' ');
-          return normalizedName === normalizedSearch;
-        },
-        
-        // 4. Contains match (sector name contains search term or vice versa)
-        s => {
-          const name = s.name || (s.fieldData && s.fieldData.name) || '';
-          const normalizedName = name.toLowerCase()
-            .trim()
-            .replace(/&/g, 'and')
-            .replace(/[^\w\s]/g, ' ')
-            .replace(/\s+/g, ' ');
-          return normalizedName.includes(normalizedSearch) || normalizedSearch.includes(normalizedName);
-        },
-        
-        // 5. Word match (at least one word is shared)
-        s => {
-          const name = s.name || (s.fieldData && s.fieldData.name) || '';
-          const normalizedName = name.toLowerCase()
-            .trim()
-            .replace(/&/g, 'and')
-            .replace(/[^\w\s]/g, ' ')
-            .replace(/\s+/g, ' ');
+      // Step 2: Try substring match (either contained within)
+      const substringMatches = allSectors.filter(
+        sector => 
+          sector.name.toLowerCase().includes(sectorName.toLowerCase()) ||
+          sectorName.toLowerCase().includes(sector.name.toLowerCase())
+      );
+      
+      if (substringMatches.length === 1) {
+        const match = substringMatches[0];
+        logger.debug(`Found substring sector match for "${sectorName}": ${match.name} (${match._id})`);
+        return match;
+      }
+      
+      // Step 3: Try word-by-word matching 
+      // This helps with things like "Engineering & Development" vs. "Engineering and Development"
+      const words = sectorName.toLowerCase()
+        .replace(/[&.,]/g, ' ')       // Replace special chars with spaces
+        .split(/\s+/)                 // Split on whitespace
+        .filter(word => word.length > 2); // Filter out short words
+      
+      if (words.length > 0) {
+        // Score each sector by how many words they share
+        const scoredSectors = allSectors.map(sector => {
+          const sectorWords = sector.name.toLowerCase()
+            .replace(/[&.,]/g, ' ')
+            .split(/\s+/)
+            .filter(word => word.length > 2);
+            
+          // Count matching words
+          const matchCount = words.filter(word => 
+            sectorWords.some(sectorWord => 
+              sectorWord.includes(word) || word.includes(sectorWord)
+            )
+          ).length;
           
-          const nameWords = normalizedName.split(' ');
-          const searchWords = normalizedSearch.split(' ');
+          // Calculate score as percentage of matching words
+          const score = matchCount / Math.max(words.length, sectorWords.length);
           
-          return nameWords.some(word => searchWords.includes(word) && word.length > 2);
-        }
-      ];
-      
-      // Try each matching strategy in order
-      for (const strategy of matchStrategies) {
-        const match = sectors.find(strategy);
-        if (match) {
-          logger.debug(`Found sector match for "${sectorName}": ${match.name || (match.fieldData && match.fieldData.name)} (${match.id})`);
-          return match;
+          return {
+            sector,
+            score
+          };
+        });
+        
+        // Find the sector with the highest score, if it's good enough
+        const bestMatch = scoredSectors.reduce(
+          (best, current) => current.score > best.score ? current : best, 
+          { score: 0.3 } // Minimum threshold
+        );
+        
+        if (bestMatch.sector) {
+          logger.debug(`Found fuzzy sector match for "${sectorName}": ${bestMatch.sector.name} (${bestMatch.sector._id}) with score ${bestMatch.score.toFixed(2)}`);
+          return bestMatch.sector;
         }
       }
       
-      logger.debug(`No sector match found for "${sectorName}"`);
+      // Step 4: Try matching using common abbreviations or replacements
+      const normalizedName = sectorName.toLowerCase()
+        .replace(/and/g, '&')
+        .replace(/\+/g, 'plus')
+        .replace(/[^\w\s&]/g, '') // Remove non-word chars except & and spaces
+        .trim();
+      
+      for (const sector of allSectors) {
+        const normalizedSectorName = sector.name.toLowerCase()
+          .replace(/and/g, '&')
+          .replace(/\+/g, 'plus')
+          .replace(/[^\w\s&]/g, '')
+          .trim();
+        
+        if (normalizedName === normalizedSectorName) {
+          logger.debug(`Found normalized sector match for "${sectorName}": ${sector.name} (${sector._id})`);
+          return sector;
+        }
+      }
+      
+      // No match found
+      logger.warn(`No matching sector found for "${sectorName}"`);
       return null;
     } catch (error) {
-      logger.error(`Error finding sector by name "${sectorName}":`, { 
-        error: error.message,
-        stack: error.stack
-      });
-      return null;
+      logger.error(`Error finding sector by name "${sectorName}":`, error);
+      throw error;
     }
   }
 

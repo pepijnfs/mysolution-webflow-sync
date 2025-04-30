@@ -12,7 +12,10 @@ const router = express.Router();
 
 // Admin authentication middleware
 const authenticateAdmin = (req, res, next) => {
-  const apiKey = req.headers['x-api-key'];
+  // Check both headers and query parameters for API key
+  const headerApiKey = req.headers['x-api-key'];
+  const queryApiKey = req.query.token || req.query['x-api-key'] || req.query.api_key || req.query.apiKey;
+  const apiKey = headerApiKey || queryApiKey;
   
   if (!apiKey || apiKey !== config.app.adminApiKey) {
     logger.warn('Unauthorized access attempt to admin endpoint', {
@@ -315,6 +318,29 @@ router.post('/sync/run-incremental', async (req, res) => {
  */
 router.get('/jobs/count', async (req, res) => {
   try {
+    // Check if request has a cache marker to reduce processing
+    const cacheMarker = req.query.cache;
+    
+    // Return cached data for dashboard polling requests
+    if (cacheMarker === 'dashboard') {
+      // Use cached job counts if available in memory and not older than 5 minutes
+      const cachedData = router.cachedJobCounts;
+      const cacheAge = router.cachedJobCountsTime ? (Date.now() - router.cachedJobCountsTime) : Infinity;
+      
+      if (cachedData && cacheAge < 300000) { // 5 minutes cache
+        return res.json({
+          success: true,
+          data: cachedData,
+          cached: true
+        });
+      }
+    }
+    
+    // Only log at debug level for this frequently called endpoint
+    if (logger.level === 'debug') {
+      logger.debug('Fetching job counts from Mysolution and Webflow');
+    }
+    
     // Get count of jobs in Webflow
     const webflowJobsResponse = await webflowAPI.getJobs();
     const webflowJobCount = webflowJobsResponse.items ? webflowJobsResponse.items.length : 0;
@@ -323,12 +349,16 @@ router.get('/jobs/count', async (req, res) => {
     const mysolutionJobs = await mysolutionAPI.getJobs();
     const mysolutionJobCount = mysolutionJobs ? mysolutionJobs.length : 0;
     
+    // Cache the results
+    router.cachedJobCounts = {
+      webflow: webflowJobCount,
+      mysolution: mysolutionJobCount
+    };
+    router.cachedJobCountsTime = Date.now();
+    
     res.json({
       success: true,
-      data: {
-        webflow: webflowJobCount,
-        mysolution: mysolutionJobCount
-      }
+      data: router.cachedJobCounts
     });
   } catch (error) {
     logger.error('Error getting job counts:', error);
@@ -347,20 +377,42 @@ router.get('/jobs/count', async (req, res) => {
  */
 router.get('/sync/status', (req, res) => {
   try {
+    // Check if request has a cache marker to reduce processing
+    const cacheMarker = req.query.cache;
+    
+    // Return cached data for dashboard polling requests
+    if (cacheMarker === 'dashboard') {
+      // Use cached sync status if available in memory and not older than 1 minute
+      const cachedData = router.cachedSyncStatus;
+      const cacheAge = router.cachedSyncStatusTime ? (Date.now() - router.cachedSyncStatusTime) : Infinity;
+      
+      if (cachedData && cacheAge < 60000) { // 1 minute cache
+        return res.json({
+          success: true,
+          data: cachedData,
+          cached: true
+        });
+      }
+    }
+    
     // Get sync state from store
     const syncState = syncStateStore.getSyncState();
     
+    // Cache the results
+    router.cachedSyncStatus = {
+      lastSync: syncState.lastSync,
+      syncCount: syncState.syncCount,
+      lastError: syncState.lastError ? {
+        message: syncState.lastError.message,
+        time: syncState.lastError.time
+      } : null,
+      jobCount: Object.keys(syncState.jobModificationDates || {}).length
+    };
+    router.cachedSyncStatusTime = Date.now();
+    
     res.json({
       success: true,
-      data: {
-        lastSync: syncState.lastSync,
-        syncCount: syncState.syncCount,
-        lastError: syncState.lastError ? {
-          message: syncState.lastError.message,
-          time: syncState.lastError.time
-        } : null,
-        jobCount: Object.keys(syncState.jobModificationDates || {}).length
-      }
+      data: router.cachedSyncStatus
     });
   } catch (error) {
     logger.error('Error getting sync status:', error);

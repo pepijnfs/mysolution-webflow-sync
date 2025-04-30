@@ -13,6 +13,7 @@ import jobsRoutes from './routes/jobs.js';
 import candidatesRoutes from './routes/candidates.js';
 import webhookRoutes from './routes/webhooks.js';
 import adminRoutes from './routes/admin.js';
+import apiRoutes from './routes/api.js';
 import webflowAPI from './api/webflow.js';
 import mysolutionAPI from './api/mysolution.js';
 import syncStateStore from './utils/syncStateStore.js';
@@ -30,8 +31,23 @@ global.eventBus = eventBus; // Make it accessible globally
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+
+// Add request logging middleware for debugging form submissions
+app.use((req, res, next) => {
+  if (req.path.includes('/api/webhooks/webflow')) {
+    logger.debug('Incoming webhook request:', {
+      path: req.path,
+      method: req.method,
+      contentType: req.headers['content-type'],
+      body: req.body,
+      params: req.params,
+      query: req.query
+    });
+  }
+  next();
+});
 
 // Request ID and logging middleware
 app.use(logger.middleware.requestId);
@@ -65,6 +81,7 @@ app.use('/api/jobs', jobsRoutes);
 app.use('/api/candidates', candidatesRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api', apiRoutes);
 
 // Static files
 app.use(express.static(path.join(__dirname, '../public')));
