@@ -138,7 +138,6 @@ Based on the Vacatures collection structure:
 | `job-excerpt-v1` | `title` | Direct mapping |
 | `job-long-description-page` | `title` | Direct mapping |
 | `job-requirements` | `jobRequirements` | Direct mapping |
-| `job-responsibilities` | `jobDescription` | Direct mapping |
 | `job-description` | `jobDescription` | Direct mapping (duplicate, to be handled later) |
 | `vacature-locatie` | `province` | Direct mapping |
 | `vacature-type` | `employmentType` | Direct mapping |

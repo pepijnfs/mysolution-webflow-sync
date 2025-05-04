@@ -30,7 +30,6 @@ function transformWebflowToMysolution(webflowCandidate, jobId = null) {
     logger.info('Mapped fields:', { email, firstName, middleName, lastName, phone, message });
     
     // Format fields according to Mysolution's expected structure
-    // Based on our successful test, use the field names from the job application configuration
     const fields = {};
     
     // Add basic required fields - using exact field names from job application configuration
@@ -43,50 +42,151 @@ function transformWebflowToMysolution(webflowCandidate, jobId = null) {
     // For the motivation/message, use the "Motivation" field name from the configuration
     if (message) fields['Motivation'] = { value: message };
     
-    // Job ID should NOT be in the fields, it should be passed in the URL
-    
-    // Handle file upload if present
+    // Enhanced CV file handling
     if (webflowCandidate['cv'] || webflowCandidate['resume']) {
       const fileData = webflowCandidate['cv'] || webflowCandidate['resume'];
-      if (fileData && fileData.buffer) {
-        // Determine the file extension based on mimetype
-        let fileExtension = '';
-        switch (fileData.mimetype) {
-        case 'application/pdf':
-          fileExtension = '.pdf';
-          break;
-        case 'application/msword':
-          fileExtension = '.doc';
-          break;
-        case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-          fileExtension = '.docx';
-          break;
-        case 'text/plain':
-          fileExtension = '.txt';
-          break;
-        default:
-          fileExtension = '';
-        }
+      
+      // Log detailed file information
+      logger.debug('Raw file data received:', {
+        hasBuffer: !!fileData?.buffer,
+        originalName: fileData?.originalname,
+        mimeType: fileData?.mimetype,
+        size: fileData?.buffer?.length,
+        isBuffer: Buffer.isBuffer(fileData?.buffer)
+      });
 
-        // Use original filename if available, otherwise generate one with the correct extension
-        const fileName = fileData.originalname || `resume${fileExtension}`;
-        const base64Data = Buffer.from(fileData.buffer).toString('base64');
-        
-        // Use field name from job application configuration
-        fields['CV'] = {
-          fileName: fileName,
-          value: base64Data
-        };
+      if (fileData && fileData.buffer) {
+        try {
+          // Ensure we have a proper buffer and handle different input types
+          let fileBuffer;
+          if (Buffer.isBuffer(fileData.buffer)) {
+            fileBuffer = fileData.buffer;
+          } else if (ArrayBuffer.isView(fileData.buffer)) {
+            // Handle TypedArray or DataView
+            fileBuffer = Buffer.from(fileData.buffer.buffer);
+          } else if (fileData.buffer instanceof ArrayBuffer) {
+            fileBuffer = Buffer.from(fileData.buffer);
+          } else if (typeof fileData.buffer === 'string') {
+            // If it's already a base64 string, decode it first
+            if (fileData.buffer.includes('base64,')) {
+              fileBuffer = Buffer.from(fileData.buffer.split('base64,')[1], 'base64');
+            } else {
+              fileBuffer = Buffer.from(fileData.buffer, 'binary');
+            }
+          } else {
+            // Last resort - try to convert whatever we have
+            fileBuffer = Buffer.from(fileData.buffer);
+          }
+
+          logger.debug('Buffer conversion result:', {
+            isBuffer: Buffer.isBuffer(fileBuffer),
+            length: fileBuffer.length,
+            sample: fileBuffer.slice(0, 16).toString('hex')
+          });
+
+          // Determine file extension and validate mime type
+          let fileExtension = '';
+          const mimeType = fileData.mimetype?.toLowerCase() || '';
+          
+          switch (mimeType) {
+            case 'application/pdf':
+              fileExtension = '.pdf';
+              break;
+            case 'application/msword':
+              fileExtension = '.doc';
+              break;
+            case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+              fileExtension = '.docx';
+              break;
+            case 'text/plain':
+              fileExtension = '.txt';
+              break;
+            default:
+              // Try to extract extension from original filename
+              const originalExt = fileData.originalname?.split('.').pop()?.toLowerCase();
+              if (originalExt && ['pdf', 'doc', 'docx', 'txt'].includes(originalExt)) {
+                fileExtension = '.' + originalExt;
+                logger.debug(`Using extension from original filename: ${fileExtension}`);
+              } else {
+                logger.warn(`Unrecognized mime type: ${mimeType}, defaulting to .pdf`);
+                fileExtension = '.pdf';
+              }
+          }
+
+          // Use original filename if available, otherwise generate one
+          const fileName = fileData.originalname || `resume${fileExtension}`;
+          
+          // Convert to base64 with proper encoding
+          // First verify the buffer is valid
+          if (fileBuffer.length === 0) {
+            throw new Error('Empty file buffer');
+          }
+
+          // Check for common file signatures/magic numbers
+          const fileSignature = fileBuffer.slice(0, 4).toString('hex');
+          logger.debug('File signature:', fileSignature);
+
+          // Convert to base64 without any manipulation
+          const base64Data = fileBuffer.toString('base64');
+          
+          // Verify the base64 string
+          try {
+            const verificationBuffer = Buffer.from(base64Data, 'base64');
+            if (verificationBuffer.length !== fileBuffer.length) {
+              logger.warn('Base64 verification failed - length mismatch', {
+                original: fileBuffer.length,
+                encoded: verificationBuffer.length
+              });
+            }
+          } catch (verifyError) {
+            logger.error('Base64 verification failed:', verifyError);
+          }
+          
+          // Log encoding results
+          logger.debug('File encoding results:', {
+            fileName,
+            originalSize: fileBuffer.length,
+            base64Length: base64Data.length,
+            mimeType,
+            fileSignature,
+            base64Sample: base64Data.substring(0, 100) + '...' // Log first 100 chars for debugging
+          });
+
+          // Add to fields using exact format from Mysolution API example
+          fields['CV'] = {
+            fileName: fileName,
+            value: base64Data
+          };
+
+          logger.info('Successfully processed CV file:', {
+            fileName,
+            size: fileBuffer.length,
+            encodedSize: base64Data.length,
+            mimeType
+          });
+        } catch (error) {
+          logger.error('Error processing CV file:', {
+            error: error.message,
+            stack: error.stack,
+            fileInfo: {
+              originalName: fileData.originalname,
+              mimeType: fileData.mimetype
+            }
+          });
+          throw new Error(`Failed to process CV file: ${error.message}`);
+        }
+      } else {
+        logger.warn('CV file data received but no buffer found');
       }
     }
     
     // Log the final transformed data structure
-    logger.info('Transformed data structure:', {
+    logger.info('Final transformed data structure:', {
       fieldCount: Object.keys(fields).length,
-      fields: Object.keys(fields)
+      fields: Object.keys(fields),
+      hasCv: !!fields['CV']
     });
     
-    // Return only the fields object, which is what the Mysolution API expects
     return fields;
   } catch (error) {
     logger.error('Error transforming Webflow candidate to Mysolution format:', error);
@@ -129,7 +229,6 @@ function transformMysolutionToWebflow(mysolutionCandidate) {
       'source': mysolutionCandidate.source || 'Mysolution ATS',
       'additional-notes': mysolutionCandidate.additionalNotes || '',
       'submission-date': new Date().toISOString(),
-      // Add more fields as needed based on Webflow candidate schema
     };
 
     return webflowCandidate;

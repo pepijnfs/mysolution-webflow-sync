@@ -18,20 +18,69 @@ const upload = multer({
  * @desc    Process a job application from Webflow
  * @access  Public
  */
-router.post('/candidates/apply', async (req, res) => {
+router.post('/candidates/apply', upload.any(), async (req, res) => {
   try {
     logger.info('Received job application from Webflow form handler');
     
-    const formData = req.body;
-    const jobId = formData['job-id'];
+    // Log all received data for debugging
+    logger.debug('Form data fields:', Object.keys(req.body));
+    logger.debug('Files received:', req.files ? req.files.map(f => ({ fieldname: f.fieldname, originalname: f.originalname })) : 'None');
+    
+    // Get form data from request body
+    const formData = { ...req.body };
+    
+    // Process any uploaded files
+    if (req.files && req.files.length > 0) {
+      // Find the file that looks like a CV (could be any field name)
+      const cvFile = req.files.find(file => {
+        const fieldname = file.fieldname.toLowerCase();
+        const originalname = file.originalname.toLowerCase();
+        
+        // Look for common CV field names or file patterns
+        return fieldname.includes('cv') || 
+               fieldname.includes('resume') || 
+               fieldname.includes('file') || 
+               originalname.includes('cv') ||
+               originalname.includes('resume') ||
+               ['.pdf', '.doc', '.docx'].some(ext => originalname.endsWith(ext));
+      });
+      
+      if (cvFile) {
+        logger.info('CV file found in upload:', {
+          fieldname: cvFile.fieldname,
+          filename: cvFile.originalname,
+          size: cvFile.size,
+          mimetype: cvFile.mimetype
+        });
+        
+        // Add to formData as 'cv' to ensure consistent processing
+        formData.cv = cvFile;
+      } else {
+        logger.warn('Files were uploaded but none appear to be a CV', {
+          uploadedFiles: req.files.map(f => f.fieldname)
+        });
+      }
+    } else {
+      logger.warn('No files uploaded with the application');
+    }
+    
+    // Get job ID from form data
+    const jobId = formData['job-id'] || formData['jobId'] || formData['mysolution-id'] || 
+                  formData['mysolution_id'] || formData['id'] || formData['vacancy_id'] || 
+                  formData['vacancy-id'];
     
     if (!jobId) {
-      logger.error('No job ID provided in application');
+      logger.error('No job ID provided in application', { 
+        formFields: Object.keys(formData),
+        formData: JSON.stringify(formData)
+      });
       return res.status(400).json({
         success: false,
         error: 'Job ID is required. Please ensure the vacancy ID is properly set.'
       });
     }
+    
+    logger.info(`Processing job application for job ID: ${jobId}`);
     
     // Process the application
     const result = await processJobApplication(jobId, formData);
@@ -62,7 +111,7 @@ router.post('/candidates/apply', async (req, res) => {
  * @desc    Process a job application with a specific job ID (file upload version)
  * @access  Public
  */
-router.post('/candidates/apply/:jobId', upload.single('cv'), async (req, res) => {
+router.post('/candidates/apply/:jobId', upload.any(), async (req, res) => {
   try {
     const jobId = req.params.jobId;
     logger.info(`Received job application from Webflow for job ${jobId}`);
@@ -70,9 +119,26 @@ router.post('/candidates/apply/:jobId', upload.single('cv'), async (req, res) =>
     // Get form data from request body
     const formData = { ...req.body };
     
-    // Add the file if it was uploaded
-    if (req.file) {
-      formData.cv = req.file;
+    // Process any uploaded files
+    if (req.files && req.files.length > 0) {
+      // Find the file that looks like a CV (could be any field name)
+      const cvFile = req.files.find(file => {
+        const fieldname = file.fieldname.toLowerCase();
+        const originalname = file.originalname.toLowerCase();
+        
+        // Look for common CV field names or file patterns
+        return fieldname.includes('cv') || 
+               fieldname.includes('resume') || 
+               fieldname.includes('file') || 
+               originalname.includes('cv') ||
+               originalname.includes('resume') ||
+               ['.pdf', '.doc', '.docx'].some(ext => originalname.endsWith(ext));
+      });
+      
+      if (cvFile) {
+        // Add to formData as 'cv' to ensure consistent processing
+        formData.cv = cvFile;
+      }
     }
     
     // Add job ID to form data

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mysolution Job Sync | Base Select</title>
+    <title>Mysolution Sync Dashboard | Base Select</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -480,34 +480,34 @@
             <div class="header-content">
                 <div class="logo">
                     <img src="./images/base-select-logo.png" alt="Base Select Logo">
-                    <h1>Mysolution Job Sync Dashboard</h1>
+                    <h1>Mysolution Sync Dashboard</h1>
                 </div>
             </div>
         </div>
     </header>
 
     <main class="container">
-        <p class="intro">This service synchronizes job data between Mysolution ATS and Webflow CMS.</p>
+        <p class="intro">Deze service synchroniseert vacature- en kandidaatgegevens tussen Mysolution ATS en Webflow CMS.</p>
         
         <div class="actions">
             <div class="tooltip">
-                <button id="sync-now-btn">Incremental Sync</button>
-                <span class="tooltiptext">Only syncs jobs that have been modified since the last sync. Faster and more efficient for regular updates.</span>
+                <button id="sync-now-btn">Mini-Sync</button>
+                <span class="tooltiptext">Synchroniseert alleen vacatures die zijn gewijzigd sinds de laatste mini-sync. Sneller en efficiënter voor regelmatige updates.</span>
             </div>
             <div class="tooltip">
-                <button id="full-sync-btn" class="btn-primary">Full Sync</button>
-                <span class="tooltiptext">Syncs all jobs regardless of modification date. Use this to ensure complete synchronization if issues occur.</span>
+                <button id="full-sync-btn" class="btn-primary">Volledige Sync</button>
+                <span class="tooltiptext">Synchroniseert alle vacatures ongeacht de wijzigingsdatum. Gebruik dit om volledige synchronisatie te garanderen bij problemen.</span>
             </div>
             <div class="toggle-container">
-                <span class="toggle-label">Auto-Publish:</span>
+                <span class="toggle-label">Auto-Publiceren:</span>
                 <label class="switch">
                     <input type="checkbox" id="auto-publish-toggle">
                     <span class="slider"></span>
                 </label>
             </div>
             <div class="tooltip">
-                <button id="publish-now-btn" class="btn-primary">Publish to Webflow</button>
-                <span class="tooltiptext">Manually publish all pending changes to the Webflow staging site.</span>
+                <button id="publish-now-btn" class="btn-primary">Publiceer naar Webflow</button>
+                <span class="tooltiptext">Publiceer handmatig alle wijzigingen naar de Webflow staging site.</span>
             </div>
         </div>
         
@@ -517,15 +517,15 @@
                 <div class="status-box">
                     <div class="status-row">
                         <span class="status-label">Status:</span>
-                        <span class="status-value" id="service-status">Running</span>
+                        <span class="status-value" id="service-status">Actief</span>
                     </div>
                     <div class="status-row">
-                        <span class="status-label">Environment:</span>
-                        <span class="status-value" id="environment">Development</span>
+                        <span class="status-label">Omgeving:</span>
+                        <span class="status-value" id="environment">Ontwikkeling</span>
                     </div>
                     <div class="status-row">
                         <span class="status-label">Uptime:</span>
-                        <span class="status-value" id="uptime">Loading...</span>
+                        <span class="status-value" id="uptime">Laden...</span>
                     </div>
                 </div>
             </div>
@@ -534,37 +534,37 @@
                 <h2>Sync Status</h2>
                 <div class="status-box">
                     <div class="status-row">
-                        <span class="status-label">Last Full Sync:</span>
-                        <span class="status-value" id="last-full-sync">Loading...</span>
+                        <span class="status-label">Laatste Volledige Sync:</span>
+                        <span class="status-value" id="last-full-sync">Laden...</span>
                     </div>
                     <div class="status-row">
-                        <span class="status-label">Last Incremental Sync:</span>
-                        <span class="status-value" id="last-incremental-sync">Loading...</span>
+                        <span class="status-label">Laatste Mini-Sync:</span>
+                        <span class="status-value" id="last-incremental-sync">Laden...</span>
                     </div>
                     <div class="status-row">
-                        <span class="status-label">Next Scheduled Sync:</span>
-                        <span class="status-value" id="next-sync">Loading...</span>
+                        <span class="status-label">Volgende Mini-Sync:</span>
+                        <span class="status-value" id="next-sync">Laden...</span>
                     </div>
                     <div class="status-row">
-                        <span class="status-label">Auto-Publish:</span>
-                        <span class="status-value" id="publishing-status">Loading...</span>
+                        <span class="status-label">Auto-Publiceren:</span>
+                        <span class="status-value" id="publishing-status">Laden...</span>
                     </div>
                 </div>
             </div>
             
             <div class="card">
-                <h2>Job Statistics</h2>
+                <h2>Vacature Statistieken</h2>
                 <div class="status-box">
                     <div class="status-row">
-                        <span class="status-label">Jobs in Mysolution:</span>
+                        <span class="status-label">Vacatures in Mysolution:</span>
                         <span class="status-value" id="mysolution-job-count">-</span>
                     </div>
                     <div class="status-row">
-                        <span class="status-label">Jobs in Webflow:</span>
+                        <span class="status-label">Vacatures in Webflow:</span>
                         <span class="status-value" id="webflow-job-count">-</span>
                     </div>
                     <div class="status-row">
-                        <span class="status-label">Last Publish:</span>
+                        <span class="status-label">Laatste Publicatie:</span>
                         <span class="status-value" id="last-publish">-</span>
                     </div>
                 </div>
@@ -574,26 +574,26 @@
         <div class="dashboard-log-layout">
             <div>
                 <div class="card">
-                    <h2>Last Sync Summary</h2>
+                    <h2>Laatste Sync Resultaten</h2>
                     <div class="status-box">
                         <div class="status-row">
-                            <span class="status-label">Total Jobs:</span>
+                            <span class="status-label">Totaal Vacatures:</span>
                             <span class="status-value" id="sync-total-jobs">-</span>
                         </div>
                         <div class="status-row">
-                            <span class="status-label">Successfully Updated:</span>
+                            <span class="status-label">Succesvol Bijgewerkt:</span>
                             <span class="status-value" id="sync-successful">-</span>
                         </div>
                         <div class="status-row">
-                            <span class="status-label">Skipped Jobs:</span>
+                            <span class="status-label">Overgeslagen:</span>
                             <span class="status-value" id="sync-skipped">-</span>
                         </div>
                         <div class="status-row">
-                            <span class="status-label">Failed Jobs:</span>
+                            <span class="status-label">Mislukt:</span>
                             <span class="status-value" id="sync-failed">-</span>
                         </div>
                         <div class="status-row">
-                            <span class="status-label">Last Sync Type:</span>
+                            <span class="status-label">Laatste Sync Type:</span>
                             <span class="status-value" id="sync-type">-</span>
                         </div>
                     </div>
@@ -602,9 +602,9 @@
             
             <div class="dashboard-log-container">
                 <div class="card">
-                    <h2>Sync Log</h2>
+                    <h2>Sync Logboek</h2>
                     <div id="log-container" class="log-container">
-                        <div class="log-entry">Initializing job sync dashboard...</div>
+                        <div class="log-entry">Initialiseren van vacature sync dashboard...</div>
                     </div>
                 </div>
             </div>
@@ -618,35 +618,35 @@
                         <span class="method">GET</span>
                         <span class="url">/health</span>
                     </div>
-                    <div class="description">Health check endpoint</div>
+                    <div class="description">Gezondheidscontrole eindpunt</div>
                 </div>
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method">POST</span>
                         <span class="url">/api/jobs/sync</span>
                     </div>
-                    <div class="description">Trigger a manual job sync</div>
+                    <div class="description">Start een handmatige vacature synchronisatie</div>
                 </div>
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method">POST</span>
                         <span class="url">/api/admin/reset-sync</span>
                     </div>
-                    <div class="description">Reset sync state and trigger a full sync (requires admin API key)</div>
+                    <div class="description">Reset sync status en start een volledige sync (vereist admin API sleutel)</div>
                 </div>
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method">GET</span>
                         <span class="url">/api/admin/publishing/status</span>
                     </div>
-                    <div class="description">Get publishing status (requires admin API key)</div>
+                    <div class="description">Bekijk publicatie status (vereist admin API sleutel)</div>
                 </div>
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method">POST</span>
                         <span class="url">/api/admin/publishing/publish</span>
                     </div>
-                    <div class="description">Force publish all changes (requires admin API key)</div>
+                    <div class="description">Forceer publicatie van alle wijzigingen (vereist admin API sleutel)</div>
                 </div>
             </div>
         </div>
@@ -655,14 +655,14 @@
     <footer>
         <div class="container">
             <div class="footer-content">
-                <p>© 2025 Base Select | Mysolution Job Sync Service</p>
+                <p>© 2025 Base Select | Mysolution Vacature Synchronisatie Service</p>
             </div>
         </div>
     </footer>
 
     <script>
         // Configuration
-        const adminApiKey = 'local-dev-admin-key'; // Default dev API key
+        const adminApiKey = '4azk?mkxEFBAX&x&TSeJH!q@y?9TJ@YE!ipgp9ze'; // Updated to match value from .env
         let syncInProgress = false;
         let publishInProgress = false;
         let eventSource = null; // For SSE connection
@@ -699,7 +699,7 @@
             publishNowBtn.addEventListener('click', triggerPublish);
             
             // Log initialization
-            addLogEntry('Dashboard initialized successfully');
+            addLogEntry('Dashboard succesvol geïnitialiseerd');
         });
         
         // Connect to real-time event stream
@@ -728,13 +728,13 @@
                 function tryConnectEventSource() {
                     if (currentEndpointIndex >= eventEndpoints.length) {
                         // We've tried all endpoints, set up polling as fallback
-                        addLogEntry('Could not establish event stream connection. Falling back to polling.', 'warning');
+                        addLogEntry('Kon geen event stream verbinding maken. Fallback naar polling', 'warning');
                         setupPollingFallback();
                         return;
                     }
                     
                     const endpoint = eventEndpoints[currentEndpointIndex];
-                    addLogEntry(`Trying event stream endpoint: ${endpoint}`, 'info');
+                    addLogEntry(`Probeer event stream eindpunt: ${endpoint}`, 'info');
                     
                     // Include API key for admin endpoints
                     let endpointWithAuth = endpoint;
@@ -756,7 +756,7 @@
                     
                     // Event source error handler
                     const handleError = function(e) {
-                        console.error('SSE connection error:', e);
+                        console.error('SSE verbinding fout:', e);
                         
                         // Clear any existing reconnection timer
                         if (reconnectTimer) {
@@ -765,7 +765,7 @@
                         
                         // Set a new timer to attempt reconnection after delay
                         reconnectTimer = setTimeout(function() {
-                            addLogEntry('Attempting to reconnect to event stream...', 'info');
+                            addLogEntry('Probeer om verbinding te herstellen met event stream...', 'info');
                             eventSource.close();
                             currentEndpointIndex = (currentEndpointIndex + 1) % eventEndpoints.length; // Cycle through endpoints
                             tryConnectEventSource();
@@ -784,8 +784,8 @@
                                 reconnectTimer = null;
                             }
                             
-                            console.log(`SSE connection established using ${endpoint}`);
-                            addLogEntry(`Real-time connection established using ${endpoint}`, 'success');
+                            console.log(`SSE verbinding succesvol gemaakt met ${endpoint}`);
+                            addLogEntry(`Real-time verbinding succesvol gemaakt met ${endpoint}`, 'success');
                             localStorage.setItem('workingEventStreamEndpoint', endpoint);
                         });
                         
@@ -933,7 +933,7 @@
                         addLogEntry(`Using default sync interval of ${syncIntervalMinutes} minutes`, 'info');
                     }
                 } else {
-                    addLogEntry(`Could not fetch sync interval, using default of ${syncIntervalMinutes} minutes`, 'warning');
+                    addLogEntry(`Kon sync interval niet ophalen, gebruik standaard van ${syncIntervalMinutes} minutes`, 'warning');
                 }
             } catch (error) {
                 console.error('Error fetching sync interval:', error);
@@ -968,7 +968,7 @@
                     
                     // Update status display
                     document.getElementById('publishing-status').textContent = 
-                        data.data.autoPublishEnabled ? 'Enabled' : 'Disabled';
+                        data.data.autoPublishEnabled ? 'Ingeschakeld' : 'Uitgeschakeld';
                     
                     // Update toggle without triggering change event
                     autoPublishToggle.checked = data.data.autoPublishEnabled;
@@ -1157,11 +1157,12 @@
                     
                     // Update status display
                     document.getElementById('publishing-status').textContent = 
-                        data.data.autoPublishEnabled ? 'Enabled' : 'Disabled';
+                        data.data.autoPublishEnabled ? 'Ingeschakeld' : 'Uitgeschakeld';
                 } else {
                     // Revert toggle if request failed
                     autoPublishToggle.checked = !enabled;
-                    addLogEntry(`Failed to ${enabled ? 'enable' : 'disable'} auto-publish`, 'error');
+                    const errorData = await response.json();
+                    addLogEntry(`Failed to ${enabled ? 'enable' : 'disable'} auto-publish: ${errorData.message || 'Unknown error'}`, 'error');
                 }
             } catch (error) {
                 console.error(`Error ${enabled ? 'enabling' : 'disabling'} auto-publish:`, error);
@@ -1240,7 +1241,7 @@
             fullSyncBtn.innerHTML = 'Syncing... <span class="loader"></span>';
             
             try {
-                addLogEntry('Starting full job sync... (This will sync ALL jobs and may take longer)', 'warning');
+                addLogEntry('Starting full job sync... (Dit zal ALLE vacatures synchroniseren en kan langer duren)', 'warning');
                 
                 const response = await fetch('/api/jobs/sync', {
                     method: 'POST',
@@ -1300,7 +1301,7 @@
             publishNowBtn.innerHTML = 'Publishing... <span class="loader"></span>';
             
             try {
-                addLogEntry('Publishing to Webflow...');
+                addLogEntry('Publiceren naar Webflow...');
                 
                 const response = await fetch('/api/admin/publishing/publish', {
                     method: 'POST',
@@ -1313,7 +1314,7 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    addLogEntry('Published to Webflow successfully', 'success');
+                    addLogEntry('Succesvol gepubliceerd naar Webflow', 'success');
                     
                     // Update last publish time
                     if (data.data && data.data.publishTime) {

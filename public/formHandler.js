@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
       submitButton.disabled = true;
       
       try {
-        // Get form data
+        // Create a proper FormData object for multipart form data (including files)
         const formData = new FormData(jobForm);
         
         // Get the job ID (hidden field with the job ID in the format 'a0wd...')
@@ -51,53 +51,8 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }
         
-        // Convert formData to JSON
-        const formDataJson = {};
-        formData.forEach((value, key) => {
-          // Handle file uploads separately
-          if (value instanceof File) {
-            // Skip files for now - they require special handling with FileReader
-            if (value.name && value.size > 0) {
-              formDataJson[key] = {
-                name: value.name,
-                type: value.type,
-                size: value.size
-              };
-            }
-          } else {
-            formDataJson[key] = value;
-          }
-        });
-        
-        // Handle file upload if present
-        const fileInput = jobForm.querySelector('input[type="file"]');
-        if (fileInput && fileInput.files.length > 0) {
-          const file = fileInput.files[0];
-          // Use FileReader to read file as base64
-          const reader = new FileReader();
-          
-          // Wrap FileReader in a Promise
-          const fileReadPromise = new Promise((resolve, reject) => {
-            reader.onload = () => {
-              const base64String = reader.result.split(',')[1]; // Extract base64 part
-              formDataJson['cv'] = {
-                buffer: base64String,
-                originalname: file.name,
-                mimetype: file.type,
-                size: file.size
-              };
-              resolve();
-            };
-            reader.onerror = reject;
-          });
-          
-          reader.readAsDataURL(file);
-          await fileReadPromise;
-        }
-        
-        // Determine the API endpoint - this will be updated by the setup-webhook-tunnel.js script
-        // for local development, but uses a relative URL in production environments
-        let apiEndpoint = '/api/candidates/apply';
+        // Determine the API endpoint
+        let apiEndpoint = 'https://14e6-2001-1c00-b807-8000-9c32-f82b-d2ac-bbc4.ngrok-free.app/api/candidates/apply';
         
         // Check if we have an override endpoint set by the development script
         const devEndpoint = window._mysolutionApiEndpoint;
@@ -107,16 +62,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('Submitting form to:', apiEndpoint);
         
+        // Send the form data directly without pre-processing the file
+        // This allows the file to be properly sent as multipart/form-data
         const response = await fetch(apiEndpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(formDataJson)
+          body: formData  // FormData automatically sets the correct Content-Type header
         });
         
         // Parse the JSON response
-        // Note: This might fail if the response is not valid JSON
         if (!response.ok) {
           // If the response is not OK, try to parse an error message
           try {

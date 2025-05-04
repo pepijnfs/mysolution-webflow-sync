@@ -73,7 +73,7 @@ const config = {
   
   // Sync settings
   sync: {
-    interval: parseInt(process.env.SYNC_INTERVAL || '900000', 10), // Default: 15 minutes
+    interval: parseInt(process.env.SYNC_INTERVAL || '60000', 10), // Default: 1 minute
     get syncIntervalMinutes() {
       return Math.ceil(this.interval / 60000); // Convert milliseconds to minutes
     },
