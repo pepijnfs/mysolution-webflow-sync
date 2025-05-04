@@ -209,6 +209,21 @@ class WebflowAPI {
           if (error.response.status === 400 && error.response.data) {
             console.error('DETAILED API ERROR:', JSON.stringify(error.response.data, null, 2));
             logger.error('Detailed Webflow API validation error:', error.response.data);
+            
+            // For validation errors, try to extract and include specific field errors in the message
+            if (error.response.data.code === 'validation_error' && 
+                error.response.data.details && 
+                error.response.data.details.length > 0) {
+              
+              // Create a detailed error message with all field errors
+              const fieldErrors = error.response.data.details.map(detail => {
+                return `${detail.param}: ${detail.description}`;
+              }).join('; ');
+              
+              throw new Error(
+                `Webflow API ${error.response.status} error: ${error.response.data.message} - ${fieldErrors}`
+              );
+            }
           }
           
           throw new Error(
@@ -332,7 +347,6 @@ class WebflowAPI {
         'job-excerpt-v1',
         'job-long-description-page',
         'job-requirements',
-        'job-responsibilities',
         'job-description',
         'vacature-type',
         'vacature-locatie',
@@ -585,13 +599,44 @@ class WebflowAPI {
       
       console.log('Formatted payload for Webflow API:', JSON.stringify(payload, null, 2));
       
-      const result = await this._makeRequest('post', `collections/${this.jobsCollectionId}/items`, payload);
-      console.log('Webflow API creation response:', JSON.stringify(result, null, 2));
-      
-      return {
-        ...result,
-        action: 'created'
-      };
+      try {
+        const result = await this._makeRequest('post', `collections/${this.jobsCollectionId}/items`, payload);
+        console.log('Webflow API creation response:', JSON.stringify(result, null, 2));
+        
+        return {
+          ...result,
+          action: 'created'
+        };
+      } catch (error) {
+        // Check if it's a duplicate slug error
+        if (error.message.includes('Validation Error') && 
+            error.message.includes('slug') && 
+            error.message.includes('already in database')) {
+          
+          console.log('Detected duplicate slug error. Generating a unique slug and retrying...');
+          
+          // Generate a unique slug with random suffix
+          const originalSlug = jobData['slug'] || '';
+          jobData['slug'] = this._generateUniqueSlug(originalSlug);
+          
+          console.log(`Generated unique slug: ${jobData['slug']}`);
+          
+          // Update payload with new slug
+          payload.fieldData = jobData;
+          
+          // Retry the request with the new slug
+          const retryResult = await this._makeRequest('post', `collections/${this.jobsCollectionId}/items`, payload);
+          console.log('Retry successful with new slug:', retryResult);
+          
+          return {
+            ...retryResult,
+            action: 'created (with unique slug)'
+          };
+        }
+        
+        // If it's not a slug error or the retry failed, rethrow
+        throw error;
+      }
     } catch (error) {
       console.error('Error creating job in Webflow:', error.message);
       throw error;
@@ -610,6 +655,64 @@ class WebflowAPI {
     console.log('Job data being sent to Webflow API:', JSON.stringify(jobData, null, 2));
     
     try {
+      // Enhanced debugging for validation errors
+      console.log('DETAILED JOB DATA VALIDATION:');
+      console.log('- vacature-salaris:', jobData['vacature-salaris'], typeof jobData['vacature-salaris']);
+      console.log('- vacature-type:', jobData['vacature-type'], typeof jobData['vacature-type']);
+      console.log('- uren-per-week:', jobData['uren-per-week'], typeof jobData['uren-per-week']);
+      
+      // Verify that dropdown values are among allowed options
+      const allowedSalaryOptions = [
+        'In overleg',
+        '50000',
+        '55000',
+        '60000',
+        '65000',
+        '70000',
+        '75000',
+        '80000',
+        '85000',
+        '90000',
+        '95000',
+        '100000',
+        '110000',
+        '120000',
+        '130000',
+        '140000',
+        '150000',
+        '160000',
+        '170000',
+        '180000',
+        '190000',
+        '200000',
+        '30.000-40.000',
+        '40.000-45.000'
+      ];
+      
+      const allowedEmploymentTypes = ['Vast', 'Interim'];
+      const allowedHoursOptions = ['16-24 uur', '24-32 uur', '32-36 uur', '36-40 uur'];
+      
+      // Check and fix salary option
+      if (jobData['vacature-salaris'] && !allowedSalaryOptions.includes(jobData['vacature-salaris'])) {
+        console.log(`WARNING: Invalid salary option: "${jobData['vacature-salaris']}"`);
+        console.log(`Allowed options are: ${allowedSalaryOptions.join(', ')}`);
+        jobData['vacature-salaris'] = 'In overleg'; // Default to safe value
+      }
+      
+      // Check and fix employment type
+      if (jobData['vacature-type'] && !allowedEmploymentTypes.includes(jobData['vacature-type'])) {
+        console.log(`WARNING: Invalid employment type: "${jobData['vacature-type']}"`);
+        console.log(`Allowed options are: ${allowedEmploymentTypes.join(', ')}`);
+        jobData['vacature-type'] = 'Vast'; // Default to safe value
+      }
+      
+      // Check and fix hours option
+      if (jobData['uren-per-week'] && !allowedHoursOptions.includes(jobData['uren-per-week'])) {
+        console.log(`WARNING: Invalid hours option: "${jobData['uren-per-week']}"`);
+        console.log(`Allowed options are: ${allowedHoursOptions.join(', ')}`);
+        jobData['uren-per-week'] = '36-40 uur'; // Default to safe value
+      }
+      
       // Check for null or undefined values in top-level properties
       const invalidFields = [];
       Object.entries(jobData).forEach(([key, value]) => {
@@ -636,13 +739,85 @@ class WebflowAPI {
       
       console.log('Formatted payload for Webflow API:', JSON.stringify(payload, null, 2));
       
-      const result = await this._makeRequest('patch', `collections/${this.jobsCollectionId}/items/${jobId}`, payload);
-      console.log('Webflow API update response:', JSON.stringify(result, null, 2));
-      
-      return {
-        ...result,
-        action: 'updated'
-      };
+      try {
+        const result = await this._makeRequest('patch', `collections/${this.jobsCollectionId}/items/${jobId}`, payload);
+        console.log('Webflow API update response:', JSON.stringify(result, null, 2));
+        
+        return {
+          ...result,
+          action: 'updated'
+        };
+      } catch (error) {
+        // Check if it's a duplicate slug error
+        if (error.message.includes('Validation Error') && 
+            error.message.includes('slug') && 
+            error.message.includes('already in database')) {
+          
+          console.log('Detected duplicate slug error during update. Generating a unique slug and retrying...');
+          
+          // Generate a unique slug with random suffix
+          const originalSlug = jobData['slug'] || '';
+          jobData['slug'] = this._generateUniqueSlug(originalSlug);
+          
+          console.log(`Generated unique slug: ${jobData['slug']}`);
+          
+          // Update payload with new slug
+          payload.fieldData = jobData;
+          
+          // Retry the request with the new slug
+          const retryResult = await this._makeRequest('patch', `collections/${this.jobsCollectionId}/items/${jobId}`, payload);
+          console.log('Retry successful with new slug:', retryResult);
+          
+          return {
+            ...retryResult,
+            action: 'updated (with unique slug)'
+          };
+        }
+        
+        // Enhanced error reporting for validation errors
+        console.error('ERROR updating job in Webflow:', error.message);
+        
+        if (error.message.includes('Validation Error')) {
+          console.error('VALIDATION ERROR DETAILS:');
+          console.error('This is likely caused by an invalid option in a dropdown field.');
+          console.error('Job data that failed validation:', JSON.stringify(jobData, null, 2));
+          
+          // Try a more minimal update as fallback
+          console.log('Attempting fallback with minimal data set...');
+          const minimalData = {
+            'name': jobData['name'],
+            'slug': jobData['slug'],
+            'mysolution-id': jobData['mysolution-id'],
+            'vacature-salaris': 'In overleg',
+            'vacature-type': 'Vast',
+            'uren-per-week': '36-40 uur'
+          };
+          
+          console.log('Fallback minimal data:', JSON.stringify(minimalData, null, 2));
+          
+          const fallbackPayload = {
+            fieldData: minimalData,
+            isDraft: false,
+            isArchived: false
+          };
+          
+          try {
+            console.log('Attempting fallback update with minimal data...');
+            const fallbackResult = await this._makeRequest('patch', `collections/${this.jobsCollectionId}/items/${jobId}`, fallbackPayload);
+            console.log('Fallback update succeeded:', JSON.stringify(fallbackResult, null, 2));
+            
+            return {
+              ...fallbackResult,
+              action: 'updated (fallback)'
+            };
+          } catch (fallbackError) {
+            console.error('Fallback update also failed:', fallbackError.message);
+            throw new Error(`Both normal and fallback updates failed: ${error.message}`);
+          }
+        }
+        
+        throw error;
+      }
     } catch (error) {
       console.error('Error updating job in Webflow:', error.message);
       throw error;
@@ -666,6 +841,9 @@ class WebflowAPI {
         logger.error('Job data is missing required "name" field');
         throw new Error('Job name is required');
       }
+      
+      // Additional validation for dropdown fields
+      this._validateDropdownFields(jobData);
       
       // Validate and clean up field data to prevent validation errors
       // Remove any null or undefined values
@@ -730,17 +908,97 @@ class WebflowAPI {
       // Find existing job
       const existingJob = await this.findJobByMysolutionId(mysolutionId);
       
-      if (existingJob) {
-        logger.debug(`Updating existing job with Mysolution ID ${mysolutionId}`);
-        return this.updateJob(existingJob.id, validatedJobData);
-      } else {
-        logger.debug(`Creating new job with Mysolution ID ${mysolutionId}`);
-        return this.createJob(validatedJobData);
+      try {
+        if (existingJob) {
+          logger.debug(`Updating existing job with Mysolution ID ${mysolutionId}`);
+          return this.updateJob(existingJob.id, validatedJobData);
+        } else {
+          logger.debug(`Creating new job with Mysolution ID ${mysolutionId}`);
+          return this.createJob(validatedJobData);
+        }
+      } catch (error) {
+        // Handle specific validation errors
+        if (error.message.includes('Validation Error')) {
+          // Check if it's specifically a duplicate slug error
+          if (error.message.includes('slug') && error.message.includes('already in database')) {
+            logger.warn(`Slug already exists for job with Mysolution ID ${mysolutionId}, generating a unique slug`);
+            console.log(`Slug collision detected for job with Mysolution ID ${mysolutionId}, generating a unique slug`);
+            
+            // Generate a new unique slug using the helper method
+            const originalSlug = validatedJobData['slug'] || '';
+            validatedJobData['slug'] = this._generateUniqueSlug(originalSlug);
+            
+            logger.debug(`Generated unique slug: ${validatedJobData['slug']}`);
+            console.log(`New unique slug: ${validatedJobData['slug']}`);
+            
+            // Retry the operation with the new slug
+            if (existingJob) {
+              return this.updateJob(existingJob.id, validatedJobData);
+            } else {
+              return this.createJob(validatedJobData);
+            }
+          }
+        }
+        
+        // If it's not a slug error or the retry failed, rethrow
+        throw error;
       }
     } catch (error) {
       logger.error(`Error creating or updating job with Mysolution ID ${mysolutionId}:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Validate dropdown fields to ensure they have valid option values
+   * @param {object} jobData - Job data to validate
+   * @private
+   */
+  _validateDropdownFields(jobData) {
+    // Define valid options for dropdown fields
+    const validOptions = {
+      'vacature-salaris': [
+        'In overleg',
+        '50000',
+        '55000',
+        '60000',
+        '65000',
+        '70000',
+        '75000',
+        '80000',
+        '85000',
+        '90000',
+        '95000',
+        '100000',
+        '110000',
+        '120000',
+        '130000',
+        '140000',
+        '150000',
+        '160000',
+        '170000',
+        '180000',
+        '190000',
+        '200000',
+        '30.000-40.000',
+        '40.000-45.000'
+      ],
+      'vacature-type': ['Vast', 'Interim'],
+      'uren-per-week': ['16-24 uur', '24-32 uur', '32-36 uur', '36-40 uur']
+    };
+    
+    // Validate each dropdown field
+    Object.entries(validOptions).forEach(([field, options]) => {
+      if (field in jobData && !options.includes(jobData[field])) {
+        logger.warn(`Invalid value for ${field}: "${jobData[field]}". Must be one of: ${options.join(', ')}`);
+        console.warn(`Invalid value for ${field}: "${jobData[field]}". Setting to default.`);
+        
+        // Set to first option as default
+        jobData[field] = options[0];
+      }
+    });
+    
+    return jobData;
   }
 
   async deleteJob(jobId) {
@@ -929,7 +1187,21 @@ class WebflowAPI {
       
       // Get all sectors
       logger.debug(`Fetching items from sectors collection: ${sectorsCollectionId}`);
-      const sectors = await this.getAllItems(sectorsCollectionId);
+      const rawSectors = await this.getAllItems(sectorsCollectionId);
+      
+      // Process sectors to extract name from fieldData if needed
+      const sectors = rawSectors.map(sector => {
+        // Handle case where name is stored in fieldData
+        if (!sector.name && sector.fieldData && sector.fieldData.name) {
+          return {
+            ...sector,
+            name: sector.fieldData.name,
+            // Preserve the original _id as well
+            _id: sector._id || sector.id
+          };
+        }
+        return sector;
+      });
       
       // Cache sectors for future use
       this.sectors = sectors;
@@ -941,7 +1213,9 @@ class WebflowAPI {
       if (sectors.length > 0) {
         logger.debug('Available sectors:');
         sectors.forEach(sector => {
-          logger.debug(`- ${sector.name} (${sector.id})`);
+          const name = sector.name || (sector.fieldData ? sector.fieldData.name : 'unnamed');
+          const id = sector._id || sector.id || 'no-id';
+          logger.debug(`- ${name} (${id})`);
         });
       } else {
         logger.warn('No sectors found in collection');
@@ -970,6 +1244,21 @@ class WebflowAPI {
         logger.warn('Cannot find sector without a name');
         return null;
       }
+
+      // Log the input sector name for debugging
+      logger.debug(`Finding sector by name: "${sectorName}"`);
+      
+      // Direct aliases for exact naming mismatches
+      const exactAliases = {
+        "Food & FCMG": "Food & FMCG"
+      };
+      
+      // Check if we have a direct alias match
+      if (sectorName in exactAliases) {
+        const aliasedName = exactAliases[sectorName];
+        logger.debug(`Using exact alias: "${sectorName}" -> "${aliasedName}"`);
+        sectorName = aliasedName;
+      }
       
       const allSectors = await this.getAllSectors();
       
@@ -977,42 +1266,159 @@ class WebflowAPI {
         logger.warn('No sectors found in Webflow');
         return null;
       }
+
+      // Helper function to get the name of a sector, checking various properties
+      const getSectorName = (sector) => {
+        if (!sector) return null;
+        
+        if (sector.name) return sector.name;
+        if (sector.fieldData && sector.fieldData.name) return sector.fieldData.name;
+        
+        return null;
+      };
+      
+      // Helper function to get the ID of a sector
+      const getSectorId = (sector) => {
+        if (!sector) return null;
+        
+        return sector._id || sector.id || null;
+      };
+      
+      // Log available sectors for debugging
+      logger.debug('Available sectors:', allSectors.map(s => {
+        const name = getSectorName(s);
+        const id = getSectorId(s);
+        
+        if (!name) {
+          logger.warn('Invalid sector object:', s);
+          return 'INVALID SECTOR';
+        }
+        
+        return `"${name}" (${id})`;
+      }));
+      
+      // Try direct name match first (case insensitive)
+      for (const sector of allSectors) {
+        const sectorName1 = getSectorName(sector);
+        if (!sectorName1) continue;
+        
+        // Check for exact match (case insensitive)
+        if (sectorName1.toLowerCase() === sectorName.toLowerCase()) {
+          logger.debug(`Found exact sector match for "${sectorName}": ${sectorName1} (${getSectorId(sector)})`);
+          return {
+            id: getSectorId(sector),
+            name: sectorName1
+          };
+        }
+      }
+      
+      // If we get here, continue with the existing matching logic
+      // Add a special case for common problematic sectors
+      const specialCases = {
+        "Food & FCMG": ["food", "fcmg", "fmcg", "consumer goods"],
+        "Food & FMCG": ["food", "fcmg", "fmcg", "consumer goods"],
+        "IT": ["technology", "tech", "information technology"],
+        "Healthcare": ["health", "healthcare", "medical", "zorg"]
+      };
+      
+      // Check if we have a special case mapping for this sector
+      if (sectorName in specialCases) {
+        logger.debug(`Using special case mapping for "${sectorName}"`);
+        // Try to find a sector that matches any of the special case keywords
+        for (const sector of allSectors) {
+          const sectorName1 = getSectorName(sector);
+          if (!sectorName1) continue;
+          
+          const sectorNameLower = sectorName1.toLowerCase();
+          // Check if any of the special case keywords match
+          const matches = specialCases[sectorName].some(keyword => 
+            sectorNameLower.includes(keyword)
+          );
+          
+          if (matches) {
+            logger.debug(`Found special case match for "${sectorName}": ${sectorName1} (${getSectorId(sector)})`);
+            return {
+              id: getSectorId(sector),
+              name: sectorName1
+            };
+          }
+        }
+      }
+      
+      // Normalize the input sector name
+      const normalizeName = (name) => {
+        if (!name) {
+          logger.warn('Attempted to normalize undefined or null name');
+          return '';
+        }
+        try {
+          return name.toString()
+            .toLowerCase()
+            .replace(/[&.,]/g, ' ')       // Replace special chars with spaces
+            .replace(/\s+/g, ' ')         // Normalize spaces
+            .trim();
+        } catch (error) {
+          logger.error(`Error normalizing name "${name}":`, error);
+          return '';
+        }
+      };
+      
+      const normalizedSectorName = normalizeName(sectorName);
+      logger.debug(`Normalized sector name: "${normalizedSectorName}"`);
       
       // Step 1: Try exact match (case insensitive)
-      const exactMatch = allSectors.find(
-        sector => sector.name.toLowerCase() === sectorName.toLowerCase()
-      );
+      const exactMatch = allSectors.find(sector => {
+        const sectorName1 = getSectorName(sector);
+        if (!sectorName1) {
+          logger.warn('Found sector with missing name property:', sector);
+          return false;
+        }
+        return normalizeName(sectorName1) === normalizedSectorName;
+      });
       
       if (exactMatch) {
-        logger.debug(`Found exact sector match for "${sectorName}": ${exactMatch.name} (${exactMatch._id})`);
-        return exactMatch;
+        const exactMatchName = getSectorName(exactMatch);
+        logger.debug(`Found exact sector match for "${sectorName}": ${exactMatchName} (${getSectorId(exactMatch)})`);
+        return {
+          id: getSectorId(exactMatch),
+          name: exactMatchName
+        };
       }
       
       // Step 2: Try substring match (either contained within)
-      const substringMatches = allSectors.filter(
-        sector => 
-          sector.name.toLowerCase().includes(sectorName.toLowerCase()) ||
-          sectorName.toLowerCase().includes(sector.name.toLowerCase())
-      );
+      const substringMatches = allSectors.filter(sector => {
+        const sectorName1 = getSectorName(sector);
+        if (!sectorName1) {
+          logger.warn('Found sector with missing name property:', sector);
+          return false;
+        }
+        const normalizedSector = normalizeName(sectorName1);
+        return normalizedSector.includes(normalizedSectorName) ||
+               normalizedSectorName.includes(normalizedSector);
+      });
       
       if (substringMatches.length === 1) {
         const match = substringMatches[0];
-        logger.debug(`Found substring sector match for "${sectorName}": ${match.name} (${match._id})`);
-        return match;
+        const matchName = getSectorName(match);
+        logger.debug(`Found substring sector match for "${sectorName}": ${matchName} (${getSectorId(match)})`);
+        return {
+          id: getSectorId(match),
+          name: matchName
+        };
       }
       
       // Step 3: Try word-by-word matching 
-      // This helps with things like "Engineering & Development" vs. "Engineering and Development"
-      const words = sectorName.toLowerCase()
-        .replace(/[&.,]/g, ' ')       // Replace special chars with spaces
-        .split(/\s+/)                 // Split on whitespace
-        .filter(word => word.length > 2); // Filter out short words
+      const words = normalizedSectorName.split(/\s+/).filter(word => word.length > 2);
       
       if (words.length > 0) {
         // Score each sector by how many words they share
         const scoredSectors = allSectors.map(sector => {
-          const sectorWords = sector.name.toLowerCase()
-            .replace(/[&.,]/g, ' ')
+          if (!sector || !sector.name) {
+            logger.warn('Found sector with missing name property:', sector);
+            return { sector, score: 0 };
+          }
+          
+          const sectorWords = normalizeName(sector.name)
             .split(/\s+/)
             .filter(word => word.length > 2);
             
@@ -1040,7 +1446,10 @@ class WebflowAPI {
         
         if (bestMatch.sector) {
           logger.debug(`Found fuzzy sector match for "${sectorName}": ${bestMatch.sector.name} (${bestMatch.sector._id}) with score ${bestMatch.score.toFixed(2)}`);
-          return bestMatch.sector;
+          return {
+            id: bestMatch.sector._id,  // Use _id for the id property
+            name: bestMatch.sector.name
+          };
         }
       }
       
@@ -1052,6 +1461,11 @@ class WebflowAPI {
         .trim();
       
       for (const sector of allSectors) {
+        if (!sector || !sector.name) {
+          logger.warn('Found sector with missing name property:', sector);
+          continue;
+        }
+        
         const normalizedSectorName = sector.name.toLowerCase()
           .replace(/and/g, '&')
           .replace(/\+/g, 'plus')
@@ -1060,7 +1474,10 @@ class WebflowAPI {
         
         if (normalizedName === normalizedSectorName) {
           logger.debug(`Found normalized sector match for "${sectorName}": ${sector.name} (${sector._id})`);
-          return sector;
+          return {
+            id: sector._id,  // Use _id for the id property
+            name: sector.name
+          };
         }
       }
       
@@ -1071,6 +1488,91 @@ class WebflowAPI {
       logger.error(`Error finding sector by name "${sectorName}":`, error);
       throw error;
     }
+  }
+
+  /**
+   * Generate a unique slug by adding a random suffix if needed
+   * @param {string} slug - The original slug
+   * @returns {string} - A unique slug with random suffix if needed
+   * @private
+   */
+  _generateUniqueSlug(slug) {
+    if (!slug) return '';
+    
+    // Check if the slug already has a random suffix (6 alphanumeric chars after last dash)
+    const suffixRegex = /-[a-z0-9]{6}$/;
+    const hasRandomSuffix = suffixRegex.test(slug);
+    
+    // If it already has a random suffix, generate a completely new one
+    // to avoid chains of suffixes like slug-abc123-def456
+    if (hasRandomSuffix) {
+      const baseSlug = slug.replace(suffixRegex, '');
+      console.log(`Slug already has a random suffix. Using base slug: ${baseSlug}`);
+      slug = baseSlug;
+    }
+    
+    // Clean the slug first
+    let cleanSlug = slug
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w-]+/g, '')
+      .replace(/--+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+      
+    // Generate a random 6-character alphanumeric suffix
+    const generateRandomSuffix = () => {
+      const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < 6; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    };
+    
+    // Add random suffix
+    const suffix = generateRandomSuffix();
+    const uniqueSlug = `${cleanSlug}-${suffix}`;
+    console.log(`Generated unique slug with suffix: ${uniqueSlug}`);
+    
+    return uniqueSlug;
+  }
+
+  /**
+   * Clean HTML content to prevent issues with string concatenation when sending to Webflow API
+   * @param {string} html - HTML content to clean
+   * @returns {string} - Clean HTML content
+   * @private
+   */
+  _cleanHtmlContent(html) {
+    if (!html || typeof html !== 'string') return html;
+    
+    // Check if the content appears to be a concatenated string (contains \n +)
+    if (html.includes('\n') && html.includes('\\n')) {
+      console.log('Detected potential concatenated HTML string, cleaning...');
+      
+      try {
+        // Remove string concatenation artifacts and normalize line breaks
+        let cleaned = html
+          // Join concatenated strings by removing + and quotes
+          .replace(/"\s*\+\s*"/g, '')
+          // Replace escaped newlines with actual newlines
+          .replace(/\\n/g, '\n')
+          // Normalize actual newlines
+          .replace(/\n+/g, '\n')
+          // Remove any remaining JavaScript string artifacts
+          .replace(/^['"]|['"]$/g, '');
+        
+        console.log('HTML cleanup successful');
+        return cleaned;
+      } catch (error) {
+        console.error('Error cleaning HTML content:', error);
+        // Return the original if cleaning fails
+        return html;
+      }
+    }
+    
+    return html;
   }
 
   /**
@@ -1090,9 +1592,122 @@ class WebflowAPI {
       // Explicitly blacklist fields we know are problematic
       const blacklistedFields = ['archived', 'archive-reason', 'archive-date'];
       
+      // Valid options for dropdown fields
+      const validOptions = {
+        'vacature-salaris': [
+          'In overleg',
+          '50000',
+          '55000',
+          '60000',
+          '65000',
+          '70000',
+          '75000',
+          '80000',
+          '85000',
+          '90000',
+          '95000',
+          '100000',
+          '110000',
+          '120000',
+          '130000',
+          '140000',
+          '150000',
+          '160000',
+          '170000',
+          '180000',
+          '190000',
+          '200000',
+          '30.000-40.000',
+          '40.000-45.000'
+        ],
+        'vacature-type': ['Vast', 'Interim']
+      };
+      
       // Keep track of fields that are not in the schema
       const invalidFields = [];
       const cleanedData = {};
+      
+      // Log the raw job data for debugging
+      console.log('Raw job data before validation:', JSON.stringify(jobData, null, 2));
+      
+      // Check for unexpected types on each field
+      Object.entries(jobData).forEach(([key, value]) => {
+        // Skip null/undefined values
+        if (value === null || value === undefined) {
+          return;
+        }
+        
+        // Clean HTML content for known HTML fields
+        if (key === 'job-description' || key === 'job-requirements' || 
+            key === 'job-excerpt-v1' || key === 'job-long-description-page') {
+          if (typeof value === 'string') {
+            jobData[key] = this._cleanHtmlContent(value);
+            console.log(`Cleaned HTML content for ${key}`);
+          }
+        }
+        
+        // Check for dropdown fields with predefined options
+        if (key in validOptions) {
+          if (!validOptions[key].includes(value)) {
+            console.warn(`Invalid value "${value}" for field "${key}", must be one of: ${validOptions[key].join(', ')}`);
+            
+            // For salary, try to find the closest match
+            if (key === 'vacature-salaris' && value !== 'In overleg' && !isNaN(parseInt(value, 10))) {
+              const numValue = parseInt(value, 10);
+              const numericOptions = validOptions[key]
+                .filter(opt => opt !== 'In overleg')
+                .map(opt => parseInt(opt, 10));
+              
+              // Find the closest option (not exceeding the value)
+              let closestOption = null;
+              for (const option of numericOptions) {
+                if (option <= numValue && (closestOption === null || option > closestOption)) {
+                  closestOption = option;
+                }
+              }
+              
+              if (closestOption !== null) {
+                const fixedValue = closestOption.toString();
+                console.warn(`Fixed invalid salary value "${value}" to "${fixedValue}"`);
+                jobData[key] = fixedValue;
+              } else {
+                // If no proper match found, default to 'In overleg'
+                console.warn(`No valid salary option found for "${value}", defaulting to "In overleg"`);
+                jobData[key] = 'In overleg';
+              }
+            } else {
+              // For other fields, default to the first valid option
+              console.warn(`Setting field "${key}" to default value "${validOptions[key][0]}"`);
+              jobData[key] = validOptions[key][0];
+            }
+          }
+        }
+        
+        // Ensure salary is a string
+        if (key === 'vacature-salaris' && typeof value !== 'string') {
+          console.warn(`Salary value "${value}" is not a string, converting to string`);
+          jobData[key] = String(value);
+        }
+        
+        // Handle slug field - keep the original slug clean but don't add a suffix right away
+        // We'll only add a suffix if there's a collision later
+        if (key === 'slug' && typeof value === 'string') {
+          // Keep the original slug clean but don't add a suffix right away
+          // We'll only add a suffix if there's a collision later
+          const cleanSlug = value
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w-]+/g, '')
+            .replace(/--+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+          
+          if (cleanSlug !== value) {
+            console.log(`Cleaned slug from "${value}" to "${cleanSlug}"`);
+            jobData[key] = cleanSlug;
+          }
+        }
+      });
       
       // Only keep fields that exist in the schema
       Object.entries(jobData).forEach(([key, value]) => {
@@ -1120,6 +1735,9 @@ class WebflowAPI {
         console.warn(`Removing ${invalidFields.length} fields not in schema:`, invalidFields);
         logger.warn('Removing fields not in Webflow schema', { invalidFields });
       }
+      
+      // Log the cleaned data for debugging
+      console.log('Cleaned job data after validation:', JSON.stringify(cleanedData, null, 2));
       
       return cleanedData;
     } catch (error) {

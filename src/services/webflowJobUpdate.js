@@ -13,7 +13,6 @@ export const DEFAULT_MERGE_STRATEGY = {
     'job-id', 
     'job-status',
     'job-description',
-    'job-responsibilities',
     'job-requirements'
   ],
   
