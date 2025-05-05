@@ -7,11 +7,18 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 
-// Ensure log directory exists
+// Ensure log directory exists (but only in development mode)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const logDir = path.dirname(config.logging.file);
-if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir, { recursive: true });
+const isProd = config.app.isProd || process.env.VERCEL || process.env.VERCEL_ENV;
+
+// Only try to create logs directory in development
+if (!isProd && !fs.existsSync(logDir)) {
+  try {
+    fs.mkdirSync(logDir, { recursive: true });
+  } catch (error) {
+    console.warn(`Warning: Could not create logs directory: ${error.message}`);
+  }
 }
 
 // Store request IDs by context
@@ -96,36 +103,44 @@ const jsonFormat = winston.format.combine(
   winston.format.json()
 );
 
-// Create file transport for daily rotation
-const fileTransport = new winston.transports.DailyRotateFile({
-  filename: 'logs/%DATE%-app.log',
-  datePattern: config.logging.datePattern,
-  zippedArchive: config.logging.zippedArchive,
-  maxSize: config.logging.maxSize,
-  maxFiles: config.logging.maxFiles,
-  level: config.logging.level,
-  format: jsonFormat
-});
+// Create transports array, starting with console
+const transports = [];
 
-// Error-specific file transport
-const errorFileTransport = new winston.transports.DailyRotateFile({
-  filename: 'logs/%DATE%-error.log',
-  datePattern: config.logging.datePattern,
-  zippedArchive: config.logging.zippedArchive,
-  maxSize: config.logging.maxSize,
-  maxFiles: config.logging.maxFiles,
-  level: 'error',
-  format: jsonFormat
-});
+// Add console transport if enabled
+if (config.logging.console) {
+  transports.push(new winston.transports.Console({
+    level: config.logging.level,
+    format: winston.format.combine(
+      winston.format.colorize(),
+      customFormat
+    )
+  }));
+}
 
-// Create console transport
-const consoleTransport = new winston.transports.Console({
-  level: config.logging.level,
-  format: winston.format.combine(
-    winston.format.colorize(),
-    customFormat
-  )
-});
+// Only add file transports in development (not on Vercel)
+if (!isProd && config.logging.file) {
+  // Create file transport for daily rotation
+  transports.push(new winston.transports.DailyRotateFile({
+    filename: 'logs/%DATE%-app.log',
+    datePattern: config.logging.datePattern,
+    zippedArchive: config.logging.zippedArchive,
+    maxSize: config.logging.maxSize,
+    maxFiles: config.logging.maxFiles,
+    level: config.logging.level,
+    format: jsonFormat
+  }));
+
+  // Error-specific file transport
+  transports.push(new winston.transports.DailyRotateFile({
+    filename: 'logs/%DATE%-error.log',
+    datePattern: config.logging.datePattern,
+    zippedArchive: config.logging.zippedArchive,
+    maxSize: config.logging.maxSize,
+    maxFiles: config.logging.maxFiles,
+    level: 'error',
+    format: jsonFormat
+  }));
+}
 
 // Custom transport for real-time logging
 class RealTimeTransport extends winston.Transport {
@@ -153,12 +168,7 @@ const winstonLogger = winston.createLogger({
   level: config.logging.level,
   defaultMeta: { service: 'mysolution-job-sync' },
   format: jsonFormat,
-  transports: [
-    // Add file transport if enabled
-    ...(config.logging.file ? [fileTransport, errorFileTransport] : []),
-    // Add console transport if enabled
-    ...(config.logging.console ? [consoleTransport] : [])
-  ]
+  transports: transports
 });
 
 // Express middleware for request logging
