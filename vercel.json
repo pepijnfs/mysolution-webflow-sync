@@ -28,8 +28,16 @@
       "dest": "src/index.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "public/$1"
+      "src": "/favicon.ico",
+      "dest": "public/favicon.ico"
+    },
+    {
+      "src": "^/static/(.*)",
+      "dest": "public/static/$1"
+    },
+    {
+      "src": "/(.*)\\.(.+)",
+      "dest": "public/$1.$2"
     },
     {
       "src": "/(.*)",
