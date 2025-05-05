@@ -3,10 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
     <title>Mysolution Sync Dashboard | Base Select</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        // Simple HTTP Basic Authentication
+        (function() {
+            // Only run on status.baseselect.nl
+            if (window.location.hostname === 'status.baseselect.nl') {
+                // Check if user is already authenticated
+                const isAuthenticated = sessionStorage.getItem('dashboard_auth');
+                
+                if (!isAuthenticated) {
+                    const username = prompt('Username:');
+                    const password = prompt('Password:');
+                    
+                    // Simple credential check - you should update these with your own credentials
+                    if (username === 'baseselect' && password === 'dashboard2024') {
+                        sessionStorage.setItem('dashboard_auth', 'true');
+                    } else {
+                        alert('Authentication failed');
+                        // Redirect to homepage or show access denied
+                        window.location.href = 'https://baseselect.nl';
+                    }
+                }
+            }
+        })();
+    </script>
     <style>
         :root {
             --primary-color: #2750e2;
