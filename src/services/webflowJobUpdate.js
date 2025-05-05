@@ -13,7 +13,8 @@ export const DEFAULT_MERGE_STRATEGY = {
     'job-id', 
     'job-status',
     'job-description',
-    'job-requirements'
+    'job-requirements',
+    'job-companies'
   ],
   
   // Fields that should only be updated if they haven't been modified in Webflow
@@ -91,10 +92,28 @@ export function resolveJobConflicts(originalJob, updatedJob, mergeStrategy = DEF
   // Initialize with updated data so all new fields are included
   const result = { ...updatedJob };
   
+  // Log current sector values for debugging
+  if (originalJob['job-companies']) {
+    logger.debug(`Original job has sector: ${originalJob['job-companies']}`);
+  }
+  if (updatedJob['job-companies']) {
+    logger.debug(`Updated job has sector: ${updatedJob['job-companies']}`);
+  }
+  
   // Process fields based on merge strategy
   Object.keys(originalJob).forEach(field => {
+    // Special case for internal job sector - always update from MySolution regardless of other settings
+    if (field === 'job-companies' && updatedJob[field] === '65f935a2e6b9d7f69afed2bb') {
+      logger.info(`Internal job sector detected (${updatedJob[field]}), forcing update regardless of conflict setting`);
+      result[field] = updatedJob[field];
+      return; // Skip normal processing for this field
+    }
+    
     // Always update these fields from Mysolution
     if (mergeStrategy.alwaysUpdate.includes(field)) {
+      if (field === 'job-companies' && originalJob[field] !== updatedJob[field]) {
+        logger.info(`Updating sector from "${originalJob[field]}" to "${updatedJob[field]}"`);
+      }
       result[field] = updatedJob[field];
     }
     // Never update these fields from Mysolution
@@ -149,6 +168,12 @@ export async function updateJob(mysolutionJob, options = {}) {
     // Transform the Mysolution job to Webflow format
     const webflowJobData = transformMysolutionToWebflow(mysolutionJob);
     
+    // Check if this is an internal job
+    const isInternalJob = mysolutionJob.msf__Show_On_Internal__c === true;
+    if (isInternalJob) {
+      logger.info(`Job ${mysolutionJob.id} is marked as internal, ensuring sector is set to "Interne Vacature"`);
+    }
+    
     // Resolve conflicts between existing job and new data
     let finalJobData;
     if (options.forceUpdate) {
@@ -163,6 +188,12 @@ export async function updateJob(mysolutionJob, options = {}) {
         webflowJobData,
         options.mergeStrategy || DEFAULT_MERGE_STRATEGY
       );
+      
+      // For internal jobs, we always want to use the internal sector regardless of conflicts
+      if (isInternalJob && webflowJobData['job-companies']) {
+        logger.info(`Forcing sector update for internal job ${mysolutionJob.id} to "Interne Vacature"`);
+        finalJobData['job-companies'] = webflowJobData['job-companies'];
+      }
     }
     
     // Update the job in Webflow

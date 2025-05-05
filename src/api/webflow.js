@@ -424,6 +424,8 @@ class WebflowAPI {
       let allItems = [];
       let offset = 0;
       let hasMore = true;
+      let pageCount = 0;
+      let totalFetched = 0;
       
       // Options without pagination parameters
       const queryOptions = {
@@ -431,19 +433,69 @@ class WebflowAPI {
         limit: batchSize
       };
       
+      console.log(`===== PAGINATION: Starting getAllItems for collection ${collectionId} =====`);
+      console.log(`- Using batch size: ${batchSize}`);
+      
       while (hasMore) {
         queryOptions.offset = offset;
+        pageCount++;
         
+        console.log(`\n- Fetching page ${pageCount} with offset ${offset}...`);
         const { items, total } = await this.getPaginatedItems(collectionId, queryOptions);
         
-        allItems = [...allItems, ...items];
-        offset += batchSize;
+        // If no items returned or empty array, we're done
+        if (!items || items.length === 0) {
+          console.log(`- Page ${pageCount}: No items returned, stopping pagination`);
+          hasMore = false;
+          break;
+        }
         
-        // Check if we've retrieved all items
-        hasMore = allItems.length < total;
+        const currentBatchSize = items.length;
+        totalFetched += currentBatchSize;
+        console.log(`- Page ${pageCount}: Retrieved ${currentBatchSize} items, total so far: ${totalFetched}`);
+        
+        allItems = [...allItems, ...items];
+        offset += items.length;
+        
+        // Check if we've retrieved all items - two ways to determine:
+        // 1. If total is provided (and is a valid non-zero number) and we've reached it
+        if (total !== undefined && total > 0) {
+          console.log(`- Total items reported by API: ${total}, fetched so far: ${allItems.length}`);
+          if (allItems.length >= total) {
+            console.log(`- Stopping pagination: reached reported total of ${total} items`);
+            hasMore = false;
+            break;
+          }
+        } else {
+          console.log(`- API returned invalid total count: ${total}, ignoring and continuing pagination`);
+        }
+        
+        // 2. If we received fewer items than requested batch size (indicates last page)
+        if (currentBatchSize < batchSize) {
+          console.log(`- Received ${currentBatchSize} items (less than batch size ${batchSize})`);
+          console.log(`- This indicates we've reached the last page, stopping pagination`);
+          hasMore = false;
+          break;
+        }
+        
+        // 3. If we're on the first page, always try to get at least one more page
+        // This handles cases where the API doesn't report the correct total count
+        if (pageCount === 1 && currentBatchSize === batchSize) {
+          console.log(`- First page returned exactly ${batchSize} items, forcing request of at least one more page`);
+          hasMore = true;
+        }
+        
+        // Safety check - prevent infinite loops
+        if (pageCount > 100) {
+          console.log(`- SAFETY LIMIT: Reached max page count (100), stopping pagination`);
+          logger.warn(`Reached maximum page count (100) when fetching items from collection ${collectionId}`);
+          hasMore = false;
+          break;
+        }
       }
       
-      logger.info(`Retrieved ${allItems.length} items from collection ${collectionId}`);
+      console.log(`\n===== PAGINATION COMPLETE: Retrieved ${allItems.length} total items across ${pageCount} pages =====`);
+      logger.info(`Retrieved ${allItems.length} items from collection ${collectionId} in ${pageCount} pages`);
       return allItems;
     } catch (error) {
       logger.error(`Error fetching all items from collection ${collectionId}`, { 
@@ -465,15 +517,25 @@ class WebflowAPI {
     try {
       // Webflow API doesn't support server-side filtering by custom fields,
       // so we need to retrieve items and filter client-side
-      const items = await this.getItems(collectionId);
+      const items = await this.getAllItems(collectionId);
       
-      return items.find(item => {
+      logger.debug(`Retrieved ${items.length} items to search for ${fieldName}=${fieldValue}`);
+      
+      const item = items.find(item => {
         // Handle both direct fields and nested fieldData
         if (item.fieldData && item.fieldData[fieldName] !== undefined) {
           return item.fieldData[fieldName] === fieldValue;
         }
         return item[fieldName] === fieldValue;
       }) || null;
+      
+      if (item) {
+        logger.debug(`Found item with ${fieldName}=${fieldValue}: ${item.id}`);
+      } else {
+        logger.debug(`No item found with ${fieldName}=${fieldValue}`);
+      }
+      
+      return item;
     } catch (error) {
       logger.error(`Error finding item by field ${fieldName} in collection ${collectionId}`, {
         error: error.message,
@@ -660,37 +722,51 @@ class WebflowAPI {
       console.log('- vacature-salaris:', jobData['vacature-salaris'], typeof jobData['vacature-salaris']);
       console.log('- vacature-type:', jobData['vacature-type'], typeof jobData['vacature-type']);
       console.log('- uren-per-week:', jobData['uren-per-week'], typeof jobData['uren-per-week']);
+      console.log('- hourly:', jobData['hourly'], typeof jobData['hourly']);
       
       // Verify that dropdown values are among allowed options
       const allowedSalaryOptions = [
         'In overleg',
-        '50000',
-        '55000',
-        '60000',
-        '65000',
-        '70000',
-        '75000',
-        '80000',
-        '85000',
-        '90000',
-        '95000',
-        '100000',
-        '110000',
-        '120000',
-        '130000',
-        '140000',
-        '150000',
-        '160000',
-        '170000',
-        '180000',
-        '190000',
-        '200000',
-        '30.000-40.000',
-        '40.000-45.000'
+        '35.000-40.000',
+        '40.000-45.000',
+        '45.000-50.000',
+        '50.000-55.000',
+        '55.000-60.000',
+        '60.000-65.000',
+        '65.000-70.000',
+        '70.000-75.000',
+        '75.000-80.000',
+        '80.000-85.000',
+        '85.000-90.000',
+        '90.000-95.000',
+        '95.000-100.000',
+        '100.000-105.000',
+        '105.000-110.000',
+        '110.000-115.000',
+        '115.000-120.000',
+        '125.000+'
       ];
       
       const allowedEmploymentTypes = ['Vast', 'Interim'];
       const allowedHoursOptions = ['16-24 uur', '24-32 uur', '32-36 uur', '36-40 uur'];
+      const allowedHourlyOptions = [
+        'In overleg',
+        '55-60',
+        '60-65',
+        '65-70',
+        '70-75',
+        '75-80',
+        '80-85',
+        '85-90',
+        '90-95',
+        '95-100',
+        '100-105',
+        '105-110',
+        '110-115',
+        '115-120',
+        '120-125',
+        '125+'
+      ];
       
       // Check and fix salary option
       if (jobData['vacature-salaris'] && !allowedSalaryOptions.includes(jobData['vacature-salaris'])) {
@@ -713,9 +789,44 @@ class WebflowAPI {
         jobData['uren-per-week'] = '36-40 uur'; // Default to safe value
       }
       
-      // Check for null or undefined values in top-level properties
+      // Check and fix hourly rate option
+      if (jobData['hourly'] && !allowedHourlyOptions.includes(jobData['hourly'])) {
+        console.log(`WARNING: Invalid hourly rate option: "${jobData['hourly']}"`);
+        console.log(`Allowed options are: ${allowedHourlyOptions.join(', ')}`);
+        jobData['hourly'] = 'In overleg'; // Default to safe value
+      }
+      
+      // Separate handling for option fields that need to be cleared
+      const optionFieldsToHandle = {
+        'vacature-salaris': null,
+        'hourly': null
+      };
+      
+      // Track fields to clear (with explicit null values)
+      const fieldsToSetNull = [];
+      
+      // Check for null values in dropdown fields that should be explicitly cleared
+      Object.entries(jobData).forEach(([key, value]) => {
+        if (key in optionFieldsToHandle && value === null) {
+          fieldsToSetNull.push(key);
+          console.log(`Field ${key} will be explicitly set to null to clear it`);
+        }
+      });
+      
+      // CRITICAL FIX: Final check to ensure internal jobs keep their sector
+      const internalSectorId = '65f935a2e6b9d7f69afed2bb';
+      if (jobData['job-companies'] === internalSectorId) {
+        console.log(`🔒 PRESERVING INTERNAL JOB SECTOR: Job ${jobId} has internal sector ID, ensuring it's preserved`);
+      }
+      
+      // Check for other null or undefined values in top-level properties
       const invalidFields = [];
       Object.entries(jobData).forEach(([key, value]) => {
+        // Skip fields that we're intentionally setting to null
+        if (fieldsToSetNull.includes(key)) {
+          return;
+        }
+        
         if (value === null || value === undefined) {
           invalidFields.push(key);
         }
@@ -723,7 +834,7 @@ class WebflowAPI {
       
       if (invalidFields.length > 0) {
         console.warn('WARNING: Job data contains null/undefined values which may cause validation errors:', invalidFields);
-        // Remove null/undefined fields to prevent validation errors
+        // Remove null/undefined fields to prevent validation errors (except explicit null fields)
         invalidFields.forEach(field => {
           console.log(`Removing null/undefined field: ${field}`);
           delete jobData[field];
@@ -736,6 +847,14 @@ class WebflowAPI {
         isDraft: false,
         isArchived: false
       };
+      
+      // Final safety check: ALWAYS preserve internal sector ID if it's set
+      if (payload.fieldData['job-companies'] === internalSectorId) {
+        console.log(`✅ FINAL CHECK: Internal sector ID confirmed for job ${jobId}`);
+      } else if (jobData['job-companies'] === internalSectorId) {
+        console.log(`🔄 FINAL FIX: Restoring internal sector ID for job ${jobId} that was lost in the payload`);
+        payload.fieldData['job-companies'] = internalSectorId;
+      }
       
       console.log('Formatted payload for Webflow API:', JSON.stringify(payload, null, 2));
       
@@ -790,7 +909,8 @@ class WebflowAPI {
             'mysolution-id': jobData['mysolution-id'],
             'vacature-salaris': 'In overleg',
             'vacature-type': 'Vast',
-            'uren-per-week': '36-40 uur'
+            'uren-per-week': '36-40 uur',
+            'hourly': 'In overleg'
           };
           
           console.log('Fallback minimal data:', JSON.stringify(minimalData, null, 2));
@@ -868,24 +988,31 @@ class WebflowAPI {
         const sectorId = jobData['job-companies'];
         logger.debug(`Found sector ID in jobData: ${sectorId}`);
         
-        // Ensure it's a valid ID before proceeding
-        try {
-          // Attempt to get the sector to validate it exists
-          const sectorsCollectionId = await this.getSectorsCollection();
-          if (sectorsCollectionId) {
-            try {
-              await this.getItem(sectorsCollectionId, sectorId);
-              logger.debug(`Verified sector ID ${sectorId} exists in collection ${sectorsCollectionId}`);
-            } catch (error) {
-              // If sector doesn't exist, log warning and remove from job data
-              logger.warn(`Sector ID ${sectorId} not found in collection ${sectorsCollectionId}, removing reference`);
-              delete jobData['job-companies'];
+        // Special handling for internal job sector (Interne Vacature)
+        const internalSectorId = '65f935a2e6b9d7f69afed2bb';
+        if (sectorId === internalSectorId) {
+          logger.info(`Job has internal sector ID (${internalSectorId}), preserving it for Webflow update`);
+          // Continue with this ID without additional validation
+        } else {
+          // For non-internal sectors, ensure it's a valid ID before proceeding
+          try {
+            // Attempt to get the sector to validate it exists
+            const sectorsCollectionId = await this.getSectorsCollection();
+            if (sectorsCollectionId) {
+              try {
+                await this.getItem(sectorsCollectionId, sectorId);
+                logger.debug(`Verified sector ID ${sectorId} exists in collection ${sectorsCollectionId}`);
+              } catch (error) {
+                // If sector doesn't exist, log warning and remove from job data
+                logger.warn(`Sector ID ${sectorId} not found in collection ${sectorsCollectionId}, removing reference`);
+                delete jobData['job-companies'];
+              }
             }
+          } catch (error) {
+            logger.warn(`Error validating sector ID ${sectorId}:`, error);
+            // Remove invalid reference
+            delete jobData['job-companies'];
           }
-        } catch (error) {
-          logger.warn(`Error validating sector ID ${sectorId}:`, error);
-          // Remove invalid reference
-          delete jobData['job-companies'];
         }
       }
       
@@ -904,6 +1031,17 @@ class WebflowAPI {
       // Validate job data against collection schema
       console.log('Validating job data against Webflow collection schema...');
       const validatedJobData = await this.validateJobData(jobData);
+      
+      // CRITICAL FIX: Explicitly ensure internal jobs ALWAYS have the Interne Vacature sector
+      // This is a hardcoded protection to ensure Webflow doesn't overwrite the internal sector
+      const internalSectorId = '65f935a2e6b9d7f69afed2bb';
+      if (validatedJobData['job-companies'] === internalSectorId) {
+        console.log(`✅ ENSURING INTERNAL JOB: Using Internal Sector ID ${internalSectorId} for job ${mysolutionId}`);
+      } else if (jobData['job-companies'] === internalSectorId) {
+        // The sector ID was lost in validation, restore it
+        console.log(`⚠️ FIXING INTERNAL JOB: Sector ID was lost during validation, restoring ${internalSectorId} for job ${mysolutionId}`);
+        validatedJobData['job-companies'] = internalSectorId;
+      }
       
       // Find existing job
       const existingJob = await this.findJobByMysolutionId(mysolutionId);
@@ -959,32 +1097,45 @@ class WebflowAPI {
     const validOptions = {
       'vacature-salaris': [
         'In overleg',
-        '50000',
-        '55000',
-        '60000',
-        '65000',
-        '70000',
-        '75000',
-        '80000',
-        '85000',
-        '90000',
-        '95000',
-        '100000',
-        '110000',
-        '120000',
-        '130000',
-        '140000',
-        '150000',
-        '160000',
-        '170000',
-        '180000',
-        '190000',
-        '200000',
-        '30.000-40.000',
-        '40.000-45.000'
+        '35.000-40.000',
+        '40.000-45.000',
+        '45.000-50.000',
+        '50.000-55.000',
+        '55.000-60.000',
+        '60.000-65.000',
+        '65.000-70.000',
+        '70.000-75.000',
+        '75.000-80.000',
+        '80.000-85.000',
+        '85.000-90.000',
+        '90.000-95.000',
+        '95.000-100.000',
+        '100.000-105.000',
+        '105.000-110.000',
+        '110.000-115.000',
+        '115.000-120.000',
+        '125.000+'
       ],
       'vacature-type': ['Vast', 'Interim'],
-      'uren-per-week': ['16-24 uur', '24-32 uur', '32-36 uur', '36-40 uur']
+      'uren-per-week': ['16-24 uur', '24-32 uur', '32-36 uur', '36-40 uur'],
+      'hourly': [
+        'In overleg',
+        '55-60',
+        '60-65',
+        '65-70',
+        '70-75',
+        '75-80',
+        '80-85',
+        '85-90',
+        '90-95',
+        '95-100',
+        '100-105',
+        '105-110',
+        '110-115',
+        '115-120',
+        '120-125',
+        '125+'
+      ]
     };
     
     // Validate each dropdown field
@@ -1596,31 +1747,44 @@ class WebflowAPI {
       const validOptions = {
         'vacature-salaris': [
           'In overleg',
-          '50000',
-          '55000',
-          '60000',
-          '65000',
-          '70000',
-          '75000',
-          '80000',
-          '85000',
-          '90000',
-          '95000',
-          '100000',
-          '110000',
-          '120000',
-          '130000',
-          '140000',
-          '150000',
-          '160000',
-          '170000',
-          '180000',
-          '190000',
-          '200000',
-          '30.000-40.000',
-          '40.000-45.000'
+          '35.000-40.000',
+          '40.000-45.000',
+          '45.000-50.000',
+          '50.000-55.000',
+          '55.000-60.000',
+          '60.000-65.000',
+          '65.000-70.000',
+          '70.000-75.000',
+          '75.000-80.000',
+          '80.000-85.000',
+          '85.000-90.000',
+          '90.000-95.000',
+          '95.000-100.000',
+          '100.000-105.000',
+          '105.000-110.000',
+          '110.000-115.000',
+          '115.000-120.000',
+          '125.000+'
         ],
-        'vacature-type': ['Vast', 'Interim']
+        'vacature-type': ['Vast', 'Interim'],
+        'hourly': [
+          'In overleg',
+          '55-60',
+          '60-65',
+          '65-70',
+          '70-75',
+          '75-80',
+          '80-85',
+          '85-90',
+          '90-95',
+          '95-100',
+          '100-105',
+          '105-110',
+          '110-115',
+          '115-120',
+          '120-125',
+          '125+'
+        ]
       };
       
       // Keep track of fields that are not in the schema

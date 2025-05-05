@@ -98,4 +98,12 @@ swagger-output.json
 
 # Temporary modifications of formHandler.js with ngrok URLs
 public/formHandler.js.bak
-public/formHandler.js.tmp 
+public/formHandler.js.tmp
+
+# Additional test utility scripts
+src/test/explore-collection.js
+src/test/inspect-field-options.js
+src/test/sync-specific-job.js
+
+# New entries
+mysolution-job-*.json 

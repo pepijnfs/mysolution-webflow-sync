@@ -54,11 +54,16 @@ async function incrementalJobsSync() {
     
     // 3. Get all jobs from Webflow that are currently published (not archived)
     console.log('📥 Retrieving current jobs from Webflow...');
-    const webflowJobsResponse = await webflowAPI.getJobs();
-    const webflowJobs = (webflowJobsResponse.items || []).filter(job => 
-      !job.isArchived
-    );
-    console.log(`📊 Found ${webflowJobs.length} published jobs in Webflow`);
+    console.log('Using getAllJobs() to ensure all jobs are retrieved with pagination...');
+    
+    // Use getAllJobs instead of getJobs to ensure we get all jobs, not just the first 100
+    const allWebflowJobs = await webflowAPI.getAllJobs();
+    
+    // Filter to get only non-archived jobs
+    const webflowJobs = allWebflowJobs.filter(job => !job.isArchived);
+    
+    logger.info(`Fetched ${allWebflowJobs.length} total jobs from Webflow, ${webflowJobs.length} are not archived`);
+    console.log(`📊 Found ${webflowJobs.length} published jobs in Webflow out of ${allWebflowJobs.length} total`);
     
     // 4. Find jobs in Webflow that should no longer be published
     const jobsToUnpublish = webflowJobs.filter(job => {
@@ -297,9 +302,11 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
     
     // Fetch existing jobs from Webflow
     console.log('📥 Retrieving current jobs from Webflow website...');
-    const webflowJobsResponse = await webflowAPI.getJobs();
-    const webflowJobs = webflowJobsResponse.items || [];
-    logger.info(`Fetched ${webflowJobs.length} jobs from Webflow`);
+    console.log('Using getAllJobs() to ensure all jobs are retrieved with pagination...');
+    
+    // Use getAllJobs instead of getJobs to ensure we get all jobs, not just the first 100
+    const webflowJobs = await webflowAPI.getAllJobs();
+    logger.info(`Fetched ${webflowJobs.length} jobs from Webflow using pagination`);
     console.log(`📊 Current Webflow website job count: ${webflowJobs.length}`);
     
     // Create a map of existing jobs in Webflow for quick lookup
@@ -332,10 +339,27 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
           console.log(`⚠️ WARNING: Job ${jobId} is missing modification date information`);
         }
         
+        // Check for internal job and log explicitly
+        const isInternalJob = mysolutionJob.msf__Show_On_Internal__c === true;
+        if (isInternalJob) {
+          console.log(`🔒 Job ${jobId} is marked as INTERNAL - will use "Interne Vacature" sector`);
+        }
+        
         console.log('🔍 Converting job data to Webflow format...');
         
         // Transform job to Webflow format - now returns a Promise
         const webflowJobData = await transformMysolutionToWebflow(mysolutionJob);
+        
+        // For internal jobs, explicitly log and verify sector field
+        if (isInternalJob) {
+          const internalSectorId = '65f935a2e6b9d7f69afed2bb';
+          if (webflowJobData['job-companies'] === internalSectorId) {
+            console.log(`✅ Internal job ${jobId} has correct sector: ${internalSectorId}`);
+          } else {
+            console.log(`⚠️ Internal job ${jobId} has incorrect sector - fixing to ${internalSectorId}`);
+            webflowJobData['job-companies'] = internalSectorId;
+          }
+        }
         
         // Check if the job already exists in Webflow
         const existingWebflowJob = webflowJobsMap.get(jobId);

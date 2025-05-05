@@ -135,6 +135,17 @@ export async function createOrUpdateJob(mysolutionJob, options = {}) {
     // Transform job data to Webflow format
     const webflowJobData = transformMysolutionToWebflow(mysolutionJob);
     
+    // Check for internal job status
+    const isInternalJob = mysolutionJob.msf__Show_On_Internal__c === true;
+    if (isInternalJob) {
+      logger.info(`Job ${mysolutionJob.id} is marked as internal in createOrUpdateJob`);
+      // Ensure the internal sector is set (defensive programming)
+      if (webflowJobData['job-companies'] !== '65f935a2e6b9d7f69afed2bb') {
+        logger.warn(`Internal job ${mysolutionJob.id} has incorrect sector, fixing to "Interne Vacature"`);
+        webflowJobData['job-companies'] = '65f935a2e6b9d7f69afed2bb';
+      }
+    }
+    
     // Use the existing API method to create or update job
     const result = await webflowAPI.createOrUpdateJobByMysolutionId(
       mysolutionJob.id, 

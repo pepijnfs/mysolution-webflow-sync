@@ -30,32 +30,46 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
       // Based on screenshot
       hoursPerWeek: ['16-24 uur', '24-32 uur', '32-36 uur', '36-40 uur'],
       employmentTypes: ['Vast', 'Interim'],
-      // These must match exactly what Webflow accepts
+      // These must match exactly what Webflow accepts - updated based on inspection results
       salaryRanges: [
         'In overleg',
-        '50000',
-        '55000',
-        '60000',
-        '65000',
-        '70000',
-        '75000',
-        '80000',
-        '85000',
-        '90000',
-        '95000',
-        '100000',
-        '110000',
-        '120000',
-        '130000',
-        '140000',
-        '150000',
-        '160000',
-        '170000',
-        '180000',
-        '190000',
-        '200000',
-        '30.000-40.000',
-        '40.000-45.000'
+        '35.000-40.000',
+        '40.000-45.000',
+        '45.000-50.000',
+        '50.000-55.000',
+        '55.000-60.000',
+        '60.000-65.000',
+        '65.000-70.000',
+        '70.000-75.000',
+        '75.000-80.000',
+        '80.000-85.000',
+        '85.000-90.000',
+        '90.000-95.000',
+        '95.000-100.000',
+        '100.000-105.000',
+        '105.000-110.000',
+        '110.000-115.000',
+        '115.000-120.000',
+        '125.000+'
+      ],
+      // Hourly rate ranges for freelancers/contractors
+      hourlyRates: [
+        'In overleg',
+        '55-60',
+        '60-65',
+        '65-70',
+        '70-75',
+        '75-80',
+        '80-85',
+        '85-90',
+        '90-95',
+        '95-100',
+        '100-105',
+        '105-110',
+        '110-115',
+        '115-120',
+        '120-125',
+        '125+'
       ]
     };
 
@@ -65,39 +79,363 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
     let vacatureSalaris = validOptions.salaryRanges[0]; // Default to 'In overleg'
     if (mysolutionJob.Jaarsalaris__c) {
       try {
-        // Extract the first number from the salary range (e.g. "40.000 – 45.000")
-        const salaryMatch = mysolutionJob.Jaarsalaris__c.match(/(\d+)(?:\.(\d+))?/);
-        if (salaryMatch) {
-          // Convert to a number for comparison
-          const salaryNum = parseInt(salaryMatch[1] + (salaryMatch[2] || ''), 10);
-          logger.debug(`Extracted salary value ${salaryNum} from "${mysolutionJob.Jaarsalaris__c}"`);
+        logger.debug(`Processing salary value: "${mysolutionJob.Jaarsalaris__c}"`);
+        
+        // Skip parsing if already "In overleg" (or case variations)
+        if (mysolutionJob.Jaarsalaris__c.toLowerCase().includes('overleg')) {
+          logger.debug(`Salary value is already "In overleg", keeping default`);
+          vacatureSalaris = 'In overleg';
+        }
+        // Check for common patterns with formatted ranges
+        else if (mysolutionJob.Jaarsalaris__c.includes('35.000') && mysolutionJob.Jaarsalaris__c.includes('40.000')) {
+          vacatureSalaris = '35.000-40.000';
+          logger.debug(`Mapped exact range "${mysolutionJob.Jaarsalaris__c}" to predefined range: ${vacatureSalaris}`);
+        }
+        else if (mysolutionJob.Jaarsalaris__c.includes('40.000') && mysolutionJob.Jaarsalaris__c.includes('45.000')) {
+          vacatureSalaris = '40.000-45.000';
+          logger.debug(`Mapped exact range "${mysolutionJob.Jaarsalaris__c}" to predefined range: ${vacatureSalaris}`);
+        }
+        // Extract numbers for custom mapping
+        else {
+          // Try to extract salary range numbers (e.g. "40.000 – 45.000")
+          const rangeMatch = mysolutionJob.Jaarsalaris__c.match(/(\d+)(?:\.(\d+))?(?:[ \-–]+)(\d+)(?:\.(\d+))?/);
           
-          // Find the closest matching salary option
-          // First, filter out 'In overleg' and convert others to numbers
-          const numericOptions = validOptions.salaryRanges
-            .filter(opt => opt !== 'In overleg')
-            .map(opt => parseInt(opt, 10));
-          
-          // Find the closest option (not exceeding the extracted salary)
-          let closestOption = null;
-          for (const option of numericOptions) {
-            if (option <= salaryNum && (closestOption === null || option > closestOption)) {
-              closestOption = option;
+          if (rangeMatch) {
+            // We have a range like "40.000 - 45.000"
+            const lowerBound = parseInt(rangeMatch[1] + (rangeMatch[2] || ''), 10);
+            const upperBound = parseInt(rangeMatch[3] + (rangeMatch[4] || ''), 10);
+            
+            logger.debug(`Extracted salary range from "${mysolutionJob.Jaarsalaris__c}": ${lowerBound} to ${upperBound}`);
+            
+            // Find the appropriate predefined range that contains this range
+            let bestMatch = null;
+            let bestMatchLower = 0;
+            
+            for (const option of validOptions.salaryRanges) {
+              if (option === 'In overleg' || option === '125.000+') continue;
+              
+              const rangeParts = option.split('-');
+              if (rangeParts.length !== 2) continue;
+              
+              const rangeLower = parseInt(rangeParts[0].replace(/\./g, ''), 10);
+              const rangeUpper = parseInt(rangeParts[1].replace(/\./g, ''), 10);
+              
+              // Find the range that best contains our target range
+              if (rangeLower <= lowerBound && rangeUpper >= upperBound) {
+                if (bestMatch === null || rangeLower > bestMatchLower) {
+                  bestMatch = option;
+                  bestMatchLower = rangeLower;
+                }
+              }
+            }
+            
+            // If no direct match, find the range with closest starting point
+            if (bestMatch === null) {
+              let closestLower = null;
+              let closestDistance = Number.MAX_SAFE_INTEGER;
+              
+              for (const option of validOptions.salaryRanges) {
+                if (option === 'In overleg' || option === '125.000+') continue;
+                
+                const rangeParts = option.split('-');
+                if (rangeParts.length !== 2) continue;
+                
+                const rangeLower = parseInt(rangeParts[0].replace(/\./g, ''), 10);
+                const distance = Math.abs(rangeLower - lowerBound);
+                
+                if (distance < closestDistance) {
+                  closestDistance = distance;
+                  closestLower = option;
+                }
+              }
+              
+              if (closestLower !== null) {
+                bestMatch = closestLower;
+              }
+            }
+            
+            if (bestMatch !== null) {
+              vacatureSalaris = bestMatch;
+              logger.debug(`Mapped salary range to closest Webflow option: ${vacatureSalaris}`);
+            } else {
+              logger.warn(`Could not find an appropriate salary range option, using default`);
+            }
+          } else {
+            // Single number (e.g. "40.000")
+            const singleMatch = mysolutionJob.Jaarsalaris__c.match(/(\d+)(?:\.(\d+))?/);
+            if (singleMatch) {
+              const salaryNum = parseInt(singleMatch[1] + (singleMatch[2] || ''), 10);
+              logger.debug(`Extracted single salary value ${salaryNum} from "${mysolutionJob.Jaarsalaris__c}"`);
+              
+              // For a single value, find the range where this salary fits
+              let bestMatch = null;
+              
+              for (const option of validOptions.salaryRanges) {
+                if (option === 'In overleg') continue;
+                
+                if (option === '125.000+') {
+                  if (salaryNum >= 125000) {
+                    bestMatch = option;
+                    break;
+                  }
+                  continue;
+                }
+                
+                const rangeParts = option.split('-');
+                if (rangeParts.length !== 2) continue;
+                
+                const rangeLower = parseInt(rangeParts[0].replace(/\./g, ''), 10);
+                const rangeUpper = parseInt(rangeParts[1].replace(/\./g, ''), 10);
+                
+                if (salaryNum >= rangeLower && salaryNum <= rangeUpper) {
+                  bestMatch = option;
+                  break;
+                }
+              }
+              
+              // If no direct fit found, use the closest range
+              if (bestMatch === null) {
+                let closestOption = null;
+                let closestDistance = Number.MAX_SAFE_INTEGER;
+                
+                for (const option of validOptions.salaryRanges) {
+                  if (option === 'In overleg') continue;
+                  
+                  if (option === '125.000+') {
+                    const distance = Math.abs(125000 - salaryNum);
+                    if (distance < closestDistance) {
+                      closestDistance = distance;
+                      closestOption = option;
+                    }
+                    continue;
+                  }
+                  
+                  const rangeParts = option.split('-');
+                  if (rangeParts.length !== 2) continue;
+                  
+                  const rangeLower = parseInt(rangeParts[0].replace(/\./g, ''), 10);
+                  const rangeMiddle = (parseInt(rangeParts[0].replace(/\./g, ''), 10) + 
+                                     parseInt(rangeParts[1].replace(/\./g, ''), 10)) / 2;
+                  
+                  // Calculate distance to the middle of the range
+                  const distance = Math.abs(rangeMiddle - salaryNum);
+                  if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestOption = option;
+                  }
+                }
+                
+                if (closestOption !== null) {
+                  bestMatch = closestOption;
+                }
+              }
+              
+              if (bestMatch !== null) {
+                vacatureSalaris = bestMatch;
+                logger.debug(`Mapped single salary ${salaryNum} to Webflow range: ${vacatureSalaris}`);
+              } else {
+                logger.warn(`Could not find an appropriate salary option for ${salaryNum}, using default`);
+              }
+            } else {
+              // Only log warning if not "In overleg" or similar
+              if (!mysolutionJob.Jaarsalaris__c.toLowerCase().includes('overleg')) {
+                logger.warn(`Could not parse salary value from "${mysolutionJob.Jaarsalaris__c}", using default`);
+              } else {
+                logger.debug(`Salary value "${mysolutionJob.Jaarsalaris__c}" indicates negotiable, using "In overleg"`);
+              }
             }
           }
-          
-          // If we found a match, use it. Otherwise fallback to default
-          if (closestOption !== null) {
-            vacatureSalaris = closestOption.toString();
-            logger.debug(`Mapped salary ${salaryNum} to closest Webflow option: ${vacatureSalaris}`);
-          } else {
-            logger.warn(`Could not find an appropriate salary option for ${salaryNum}, using default`);
-          }
+        }
+        
+        // Final validation check - ensure the mapped value is in the allowed options
+        if (!validOptions.salaryRanges.includes(vacatureSalaris)) {
+          logger.warn(`Mapped salary value "${vacatureSalaris}" is not in the allowed options list. Using default.`);
+          vacatureSalaris = 'In overleg';
         } else {
-          logger.warn(`Could not parse salary value from "${mysolutionJob.Jaarsalaris__c}", using default`);
+          logger.debug(`Final salary value "${vacatureSalaris}" is valid in the options list.`);
         }
       } catch (error) {
         logger.error(`Error parsing salary value: ${error.message}`);
+        // Fallback to default
+        vacatureSalaris = 'In overleg';
+      }
+    }
+    
+    // Handle hourly rate mapping - similar to salary but for hourly rates
+    let hourlyRate = validOptions.hourlyRates[0]; // Default to 'In overleg'
+    if (mysolutionJob.Uurtarief__c) {
+      try {
+        logger.debug(`Processing hourly rate value: "${mysolutionJob.Uurtarief__c}"`);
+        
+        // Skip parsing if already "In overleg" (or case variations)
+        if (mysolutionJob.Uurtarief__c.toLowerCase().includes('overleg')) {
+          logger.debug(`Hourly rate value is already "In overleg", keeping default`);
+          hourlyRate = 'In overleg';
+        }
+        else {
+          // Try to extract hourly rate range numbers (e.g. "60 – 65")
+          const rangeMatch = mysolutionJob.Uurtarief__c.match(/(\d+)(?:\.(\d+))?(?:[ \-–]+)(\d+)(?:\.(\d+))?/);
+          
+          if (rangeMatch) {
+            // We have a range like "60 - 65"
+            const lowerBound = parseInt(rangeMatch[1] + (rangeMatch[2] || ''), 10);
+            const upperBound = parseInt(rangeMatch[3] + (rangeMatch[4] || ''), 10);
+            
+            logger.debug(`Extracted hourly rate range from "${mysolutionJob.Uurtarief__c}": ${lowerBound} to ${upperBound}`);
+            
+            // Find the appropriate predefined range that contains this range
+            let bestMatch = null;
+            
+            for (const option of validOptions.hourlyRates) {
+              if (option === 'In overleg' || option === '125+') continue;
+              
+              const rangeParts = option.split('-');
+              if (rangeParts.length !== 2) continue;
+              
+              const rangeLower = parseInt(rangeParts[0], 10);
+              const rangeUpper = parseInt(rangeParts[1], 10);
+              
+              // Find the range that best contains our target range
+              if (rangeLower <= lowerBound && rangeUpper >= upperBound) {
+                bestMatch = option;
+                break;
+              }
+            }
+            
+            // If no direct match, find the closest range
+            if (bestMatch === null) {
+              let closestOption = null;
+              let closestDistance = Number.MAX_SAFE_INTEGER;
+              
+              for (const option of validOptions.hourlyRates) {
+                if (option === 'In overleg' || option === '125+') continue;
+                
+                const rangeParts = option.split('-');
+                if (rangeParts.length !== 2) continue;
+                
+                const rangeLower = parseInt(rangeParts[0], 10);
+                const rangeUpper = parseInt(rangeParts[1], 10);
+                const rangeMiddle = (rangeLower + rangeUpper) / 2;
+                
+                // Use the middle of both ranges to compare
+                const inputMiddle = (lowerBound + upperBound) / 2;
+                const distance = Math.abs(rangeMiddle - inputMiddle);
+                
+                if (distance < closestDistance) {
+                  closestDistance = distance;
+                  closestOption = option;
+                }
+              }
+              
+              if (closestOption !== null) {
+                bestMatch = closestOption;
+              }
+            }
+            
+            if (bestMatch !== null) {
+              hourlyRate = bestMatch;
+              logger.debug(`Mapped hourly rate range to closest Webflow option: ${hourlyRate}`);
+            } else {
+              logger.warn(`Could not find an appropriate hourly rate range option, using default`);
+            }
+          } else {
+            // Single number (e.g. "65")
+            const singleMatch = mysolutionJob.Uurtarief__c.match(/(\d+)(?:\.(\d+))?/);
+            if (singleMatch) {
+              const rateNum = parseInt(singleMatch[1] + (singleMatch[2] || ''), 10);
+              logger.debug(`Extracted single hourly rate value ${rateNum} from "${mysolutionJob.Uurtarief__c}"`);
+              
+              // For a single value, find the range where this rate fits
+              let bestMatch = null;
+              
+              for (const option of validOptions.hourlyRates) {
+                if (option === 'In overleg') continue;
+                
+                if (option === '125+') {
+                  if (rateNum >= 125) {
+                    bestMatch = option;
+                    break;
+                  }
+                  continue;
+                }
+                
+                const rangeParts = option.split('-');
+                if (rangeParts.length !== 2) continue;
+                
+                const rangeLower = parseInt(rangeParts[0], 10);
+                const rangeUpper = parseInt(rangeParts[1], 10);
+                
+                if (rateNum >= rangeLower && rateNum <= rangeUpper) {
+                  bestMatch = option;
+                  break;
+                }
+              }
+              
+              // If no direct fit found, use the closest range
+              if (bestMatch === null) {
+                let closestOption = null;
+                let closestDistance = Number.MAX_SAFE_INTEGER;
+                
+                for (const option of validOptions.hourlyRates) {
+                  if (option === 'In overleg') continue;
+                  
+                  if (option === '125+') {
+                    const distance = Math.abs(125 - rateNum);
+                    if (distance < closestDistance) {
+                      closestDistance = distance;
+                      closestOption = option;
+                    }
+                    continue;
+                  }
+                  
+                  const rangeParts = option.split('-');
+                  if (rangeParts.length !== 2) continue;
+                  
+                  const rangeLower = parseInt(rangeParts[0], 10);
+                  const rangeUpper = parseInt(rangeParts[1], 10);
+                  const rangeMiddle = (rangeLower + rangeUpper) / 2;
+                  
+                  // Calculate distance to the middle of the range
+                  const distance = Math.abs(rangeMiddle - rateNum);
+                  if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestOption = option;
+                  }
+                }
+                
+                if (closestOption !== null) {
+                  bestMatch = closestOption;
+                }
+              }
+              
+              if (bestMatch !== null) {
+                hourlyRate = bestMatch;
+                logger.debug(`Mapped single hourly rate ${rateNum} to Webflow range: ${hourlyRate}`);
+              } else {
+                logger.warn(`Could not find an appropriate hourly rate option for ${rateNum}, using default`);
+              }
+            } else {
+              // Only log warning if not "In overleg" or similar
+              if (!mysolutionJob.Uurtarief__c.toLowerCase().includes('overleg')) {
+                logger.warn(`Could not parse hourly rate value from "${mysolutionJob.Uurtarief__c}", using default`);
+              } else {
+                logger.debug(`Hourly rate value "${mysolutionJob.Uurtarief__c}" indicates negotiable, using "In overleg"`);
+              }
+            }
+          }
+        }
+        
+        // Final validation check - ensure the mapped value is in the allowed options
+        if (!validOptions.hourlyRates.includes(hourlyRate)) {
+          logger.warn(`Mapped hourly rate value "${hourlyRate}" is not in the allowed options list. Using default.`);
+          hourlyRate = 'In overleg';
+        } else {
+          logger.debug(`Final hourly rate value "${hourlyRate}" is valid in the options list.`);
+        }
+      } catch (error) {
+        logger.error(`Error parsing hourly rate value: ${error.message}`);
+        // Fallback to default
+        hourlyRate = 'In overleg';
       }
     }
     
@@ -133,8 +471,8 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
 
     // Map employment type
     let vacatureType = validOptions.employmentTypes[0]; // Default to 'Vast'
-    if (mysolutionJob.msf__Employment_Type__c) {
-      const employmentType = mysolutionJob.msf__Employment_Type__c;
+    if (mysolutionJob.BS_Soort_dienstverband__c) {
+      const employmentType = mysolutionJob.BS_Soort_dienstverband__c;
       if (employmentType.toLowerCase().includes('interim')) {
         vacatureType = validOptions.employmentTypes[1]; // 'Interim'
       }
@@ -142,7 +480,24 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
 
     // Handle sector reference - look up the sector by name in the sectors collection
     let sectorRef = null;
-    if (mysolutionJob.BS_Sector__c) {
+    
+    // Check if the job is marked as internal
+    const isInternalJob = mysolutionJob.msf__Show_On_Internal__c === true;
+    
+    if (isInternalJob) {
+      // For internal jobs, always use the "Interne Vacature" sector
+      // This takes precedence over any sector that might be set in BS_Sector__c
+      const interneVacatureId = '65f935a2e6b9d7f69afed2bb';
+      sectorRef = interneVacatureId;
+      
+      // Log a warning if a sector was also specified to help administrators identify potential issues
+      if (mysolutionJob.BS_Sector__c) {
+        logger.warn(`Internal job (${jobId}) has both internal flag AND sector "${mysolutionJob.BS_Sector__c}" set. ` +
+                   `Ignoring specified sector and using "Interne Vacature" instead.`);
+      }
+      
+      logger.debug(`Job is marked as internal, setting sector to "Interne Vacature" (${interneVacatureId})`);
+    } else if (mysolutionJob.BS_Sector__c) {
       try {
         logger.debug(`Looking up sector for "${mysolutionJob.BS_Sector__c}"`);
         const sector = await webflowAPI.findSectorByName(mysolutionJob.BS_Sector__c);
@@ -164,6 +519,10 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
     // Clean job name from unnecessary quotes
     const cleanName = mysolutionJob.Name ? cleanJobTitle(mysolutionJob.Name) : 'Untitled Job';
     
+    // Determine employment type from BS_Soort_dienstverband__c
+    const isInterim = mysolutionJob.BS_Soort_dienstverband__c === 'Interim';
+    logger.debug(`Job employment type: ${mysolutionJob.BS_Soort_dienstverband__c}, isInterim: ${isInterim}`);
+    
     // Create a transformed job object for Webflow
     const webflowJob = {
       'name': cleanName,
@@ -175,15 +534,35 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
       'job-description': formatHtmlContent(mysolutionJob.msf__Job_Description__c || ''),
       'vacature-locatie': mysolutionJob.BS_Provincie__c || '',
       'vacature-type': vacatureType,
-      'vacature-salaris': vacatureSalaris,
       'job-is-featured': mysolutionJob.msf__Show_On_Website__c || false,
       'uren-per-week': urenPerWeek,
     };
     
+    // Add information about internal job status
+    if (isInternalJob) {
+      logger.debug(`Job is marked as internal: ${isInternalJob}`);
+      // If you have a specific field in Webflow for marking internal jobs, you could set it here
+    }
+    
+    // Apply conditional logic for salary vs hourly rate
+    if (isInterim) {
+      // For Interim jobs, use hourly rate in 'hourly' field
+      webflowJob['hourly'] = hourlyRate;
+      // Explicitly clear salary field to ensure it doesn't persist from prior state
+      webflowJob['vacature-salaris'] = null; // Set to null to ensure it's removed in Webflow
+      logger.debug(`Interim job: Setting hourly rate to ${hourlyRate}, clearing any existing salary`);
+    } else {
+      // For Vast jobs, use yearly salary in 'vacature-salaris' field
+      webflowJob['vacature-salaris'] = vacatureSalaris;
+      // Explicitly clear hourly rate field to ensure it doesn't persist from prior state
+      webflowJob['hourly'] = null; // Set to null to ensure it's removed in Webflow
+      logger.debug(`Permanent job: Setting salary to ${vacatureSalaris}, clearing any existing hourly rate`);
+    }
+    
     // Additional validation for dropdown fields
     // If these fields are not valid options, they will cause validation errors
-    // Check salary range
-    if (!validOptions.salaryRanges.includes(webflowJob['vacature-salaris'])) {
+    // Check salary range if set
+    if (webflowJob['vacature-salaris'] && !validOptions.salaryRanges.includes(webflowJob['vacature-salaris'])) {
       logger.warn(`Invalid salary option: ${webflowJob['vacature-salaris']}. Using default.`);
       webflowJob['vacature-salaris'] = 'In overleg';
     }
@@ -200,16 +579,27 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
       webflowJob['uren-per-week'] = '36-40 uur';
     }
     
+    // Check hourly rate if set
+    if (webflowJob['hourly'] && !validOptions.hourlyRates.includes(webflowJob['hourly'])) {
+      logger.warn(`Invalid hourly rate option: ${webflowJob['hourly']}. Using default.`);
+      webflowJob['hourly'] = 'In overleg';
+    }
+    
     // Log final validated values
     logger.debug(`Final validated field values:
-    - Salary: ${webflowJob['vacature-salaris']}
+    - Salary: ${webflowJob['vacature-salaris'] || 'Not set (Interim job)'}
     - Type: ${webflowJob['vacature-type']}
-    - Hours: ${webflowJob['uren-per-week']}`);
+    - Hours: ${webflowJob['uren-per-week']}
+    - Hourly Rate: ${webflowJob['hourly'] || 'Not set (Permanent job)'}`);
     
     // Only add the reference if we found a matching sector
     if (sectorRef) {
       webflowJob['job-companies'] = sectorRef;
-      logger.debug(`Added sector reference to job data: ${sectorRef}`);
+      if (isInternalJob) {
+        logger.debug(`Set sector reference to "Interne Vacature" (${sectorRef}) for internal job`);
+      } else {
+        logger.debug(`Added sector reference to job data: ${sectorRef}`);
+      }
     }
     
     console.log('OUTPUT Webflow Job Data:', JSON.stringify(webflowJob, null, 2));
