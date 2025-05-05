@@ -51,8 +51,16 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }
         
-        // Determine the API endpoint
-        let apiEndpoint = 'https://14e6-2001-1c00-b807-8000-9c32-f82b-d2ac-bbc4.ngrok-free.app/api/candidates/apply';
+        // Determine the API endpoint - use the production endpoint by default
+        let apiEndpoint = 'https://status.baseselect.nl/api/candidates/apply';
+        
+        // Check if we're running in development and use the appropriate endpoint
+        if (window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1')) {
+          apiEndpoint = 'http://localhost:3000/api/candidates/apply';
+        } else if (window.location.hostname.includes('webflow.io')) {
+          // For Webflow staging site
+          apiEndpoint = 'https://status.baseselect.nl/api/candidates/apply';
+        }
         
         // Check if we have an override endpoint set by the development script
         const devEndpoint = window._mysolutionApiEndpoint;

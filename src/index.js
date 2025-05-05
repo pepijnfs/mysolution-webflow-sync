@@ -30,7 +30,17 @@ const eventBus = new EventEmitter();
 global.eventBus = eventBus; // Make it accessible globally
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://www.baseselect.nl',
+    'https://baselifesciences.webflow.io',
+    'http://localhost:3000',
+    /\.baseselect\.nl$/  // Allow all subdomains of baseselect.nl
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  credentials: true
+}));
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
