@@ -7,10 +7,22 @@ import { logger } from './logger.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SYNC_STATE_FILE = path.join(__dirname, '../../data/sync-state.json');
 
-// Ensure the data directory exists
-const dataDir = path.dirname(SYNC_STATE_FILE);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+// Detect if we're running in Vercel's serverless environment
+const isServerless = process.env.VERCEL || process.env.VERCEL_ENV || process.env.AWS_LAMBDA_FUNCTION_NAME;
+
+// In-memory state for serverless environments
+let inMemorySyncState = null;
+
+// Ensure the data directory exists (only in development/non-serverless environments)
+if (!isServerless) {
+  const dataDir = path.dirname(SYNC_STATE_FILE);
+  try {
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+  } catch (error) {
+    console.warn(`Warning: Could not create data directory: ${error.message}`);
+  }
 }
 
 /**
@@ -24,10 +36,20 @@ const DEFAULT_SYNC_STATE = {
 };
 
 /**
- * Load sync state from disk
+ * Load sync state from disk or memory
  * @returns {Object} Current sync state
  */
 function loadSyncState() {
+  // If in serverless environment, use in-memory state
+  if (isServerless) {
+    if (inMemorySyncState === null) {
+      console.log('Initializing in-memory sync state in serverless environment');
+      inMemorySyncState = { ...DEFAULT_SYNC_STATE };
+    }
+    return { ...inMemorySyncState }; // Return a copy to avoid reference issues
+  }
+
+  // In non-serverless environment, load from file
   try {
     if (fs.existsSync(SYNC_STATE_FILE)) {
       console.log(`Loading sync state from file: ${SYNC_STATE_FILE}`);
@@ -77,38 +99,46 @@ function loadSyncState() {
 }
 
 /**
- * Save sync state to disk
+ * Save sync state to disk or memory
  * @param {Object} state - State to save
  * @returns {boolean} Success status
  */
 function saveSyncState(state) {
+  // Validate state before saving
+  if (!state || typeof state !== 'object') {
+    console.error('Invalid state object provided to saveSyncState');
+    return false;
+  }
+  
+  // Log what we're saving
+  console.log(`Saving sync state with ${Object.keys(state.jobModificationDates || {}).length} job modification dates`);
+  
+  // Create a deep copy of the state to avoid reference issues
+  const stateCopy = JSON.parse(JSON.stringify(state));
+  
+  // Ensure jobModificationDates exists
+  if (!stateCopy.jobModificationDates) {
+    stateCopy.jobModificationDates = {};
+    console.log('Initialized missing jobModificationDates property');
+  }
+  
+  // Check if state has expected properties
+  const expectedProps = ['lastSync', 'syncCount', 'lastError', 'jobModificationDates'];
+  expectedProps.forEach(prop => {
+    if (!(prop in stateCopy)) {
+      console.log(`WARNING: Missing expected property '${prop}' in sync state`);
+    }
+  });
+
+  // If in serverless environment, store in memory and return
+  if (isServerless) {
+    inMemorySyncState = stateCopy;
+    console.log(`Saved sync state in memory (serverless mode)`);
+    return true;
+  }
+  
+  // In non-serverless environment, save to file
   try {
-    // Validate state before saving
-    if (!state || typeof state !== 'object') {
-      console.error('Invalid state object provided to saveSyncState');
-      return false;
-    }
-    
-    // Log what we're saving
-    console.log(`Saving sync state with ${Object.keys(state.jobModificationDates || {}).length} job modification dates`);
-    
-    // Create a deep copy of the state to avoid reference issues
-    const stateCopy = JSON.parse(JSON.stringify(state));
-    
-    // Ensure jobModificationDates exists
-    if (!stateCopy.jobModificationDates) {
-      stateCopy.jobModificationDates = {};
-      console.log('Initialized missing jobModificationDates property');
-    }
-    
-    // Check if state has expected properties
-    const expectedProps = ['lastSync', 'syncCount', 'lastError', 'jobModificationDates'];
-    expectedProps.forEach(prop => {
-      if (!(prop in stateCopy)) {
-        console.log(`WARNING: Missing expected property '${prop}' in sync state`);
-      }
-    });
-    
     // Convert to JSON string with formatting for readability
     const jsonData = JSON.stringify(stateCopy, null, 2);
     
@@ -251,116 +281,113 @@ function resetSyncState() {
 }
 
 /**
- * Check if a job needs updating based on its modification date
- * @param {string} jobId - The job ID
- * @param {string} modificationDate - The job's current modification date
- * @returns {boolean} True if the job needs updating
+ * Check if a job needs to be updated based on its modification date
+ * @param {string} jobId - Mysolution job ID
+ * @param {string} modificationDate - ISO date string of job modification
+ * @returns {boolean} Whether the job needs to be updated
  */
 function jobNeedsUpdate(jobId, modificationDate) {
   if (!jobId || !modificationDate) {
-    // If we don't have an ID or modification date, assume it needs updating
-    console.log(`Job ${jobId || 'unknown'} missing ID or modification date, assuming it needs update`);
+    // If either parameter is missing, assume update is needed
+    console.log(`Job needs update check called with invalid parameters: jobId=${jobId}, modDate=${modificationDate}`);
     return true;
   }
   
-  const state = loadSyncState();
-  
-  // Log the current state of modification dates
-  console.log(`Checking job ${jobId} against ${Object.keys(state.jobModificationDates || {}).length} stored modification dates`);
-  
-  // Debug log to help diagnose issues
-  if (Object.keys(state.jobModificationDates || {}).length > 0) {
-    console.log(`Available job IDs in state: ${Object.keys(state.jobModificationDates).join(', ')}`);
-  }
-  
-  const previousDate = state.jobModificationDates[jobId];
-  
-  // If we don't have a previous date for this job, it needs updating
-  if (!previousDate) {
-    console.log(`No previous modification date found for job ${jobId}, needs update`);
-    return true;
-  }
-  
-  // Convert dates to clean Date objects for accurate comparison
-  // Parse the dates to ensure proper timezone handling
   try {
-    // Strip any trailing timezone info for consistent comparison
-    const cleanPreviousDate = previousDate.replace(/\.\d{3}Z?$/, '').replace(/\+0000$/, '');
-    const cleanCurrentDate = modificationDate.replace(/\.\d{3}Z?$/, '').replace(/\+0000$/, '');
-    
-    // Parse as dates
-    const previousDateObj = new Date(cleanPreviousDate);
-    const currentDateObj = new Date(cleanCurrentDate);
-    
-    // Check if either date is invalid
-    if (isNaN(previousDateObj.getTime()) || isNaN(currentDateObj.getTime())) {
-      console.log(`Invalid date format detected for job ${jobId}, defaulting to update required`);
+    // Convert both dates to comparable formats (milliseconds since epoch)
+    const newModDate = new Date(modificationDate).getTime();
+    if (isNaN(newModDate)) {
+      console.log(`Invalid modification date provided: ${modificationDate}`);
       return true;
     }
     
-    // Check if the dates are exactly equal (string comparison)
-    if (cleanPreviousDate === cleanCurrentDate) {
-      console.log(`Exact date string match for job ${jobId}, no update needed`);
-      return false;
+    // Load current state
+    const state = loadSyncState();
+    
+    // Check if we have a record for this job
+    if (state.jobModificationDates && state.jobModificationDates[jobId]) {
+      const oldModDate = new Date(state.jobModificationDates[jobId]).getTime();
+      
+      if (isNaN(oldModDate)) {
+        console.log(`Invalid stored modification date for job ${jobId}: ${state.jobModificationDates[jobId]}`);
+        return true;
+      }
+      
+      // Compare dates
+      const needsUpdate = newModDate > oldModDate;
+      
+      // Log the decision with date information
+      if (needsUpdate) {
+        console.log(`Job ${jobId} needs update - old: ${new Date(oldModDate).toISOString()}, new: ${new Date(newModDate).toISOString()}`);
+      } else {
+        console.log(`Job ${jobId} does NOT need update - same modification date`);
+      }
+      
+      return needsUpdate;
+    } else {
+      // No record found, so update is needed
+      console.log(`Job ${jobId} needs update - no previous record found`);
+      return true;
     }
-    
-    // Check if the current date is actually newer
-    const needsUpdate = currentDateObj > previousDateObj;
-    
-    console.log(`Job ${jobId} modification date comparison:
-    - Stored date: ${cleanPreviousDate} (${previousDateObj.toISOString()})
-    - Current date: ${cleanCurrentDate} (${currentDateObj.toISOString()})
-    - Time difference: ${currentDateObj - previousDateObj} ms
-    - Needs update: ${needsUpdate ? 'YES' : 'NO'}`);
-    
-    return needsUpdate;
   } catch (error) {
-    console.error(`Error comparing dates for job ${jobId}:`, error);
-    // If there's an error in date comparison, be safe and update
+    // On any error, assume update is needed
+    console.error(`Error checking if job ${jobId} needs update:`, error);
     return true;
   }
 }
 
 /**
- * Update the stored modification date for a job
- * @param {string} jobId - The job ID
- * @param {string} modificationDate - The job's current modification date
+ * Update the modification date for a job
+ * @param {string} jobId - Mysolution job ID
+ * @param {string} modificationDate - ISO date string of job modification
+ * @returns {boolean} Success status
  */
 function updateJobModificationDate(jobId, modificationDate) {
   if (!jobId || !modificationDate) {
-    console.log('Cannot update job modification date: missing jobId or modificationDate');
-    return;
+    console.error(`Invalid parameters for updateJobModificationDate: jobId=${jobId}, modDate=${modificationDate}`);
+    return false;
   }
   
-  const state = loadSyncState();
-  
-  // Log the current state before updating
-  const oldDate = state.jobModificationDates?.[jobId];
-  if (oldDate) {
-    console.log(`Updating job ${jobId} modification date from ${oldDate} to ${modificationDate}`);
-  } else {
-    console.log(`Setting initial modification date for job ${jobId} to ${modificationDate}`);
+  try {
+    // Validate date
+    const modDate = new Date(modificationDate);
+    if (isNaN(modDate.getTime())) {
+      console.error(`Invalid modification date: ${modificationDate}`);
+      return false;
+    }
+    
+    // Load state
+    const state = loadSyncState();
+    
+    // Ensure jobModificationDates exists
+    if (!state.jobModificationDates) {
+      state.jobModificationDates = {};
+    }
+    
+    // Record previous value for logging
+    const prevDate = state.jobModificationDates[jobId];
+    
+    // Update modification date
+    state.jobModificationDates[jobId] = modificationDate;
+    
+    // Log the update
+    if (prevDate) {
+      console.log(`Updated modification date for job ${jobId}: ${prevDate} -> ${modificationDate}`);
+    } else {
+      console.log(`Set initial modification date for job ${jobId}: ${modificationDate}`);
+    }
+    
+    // Save state
+    return saveSyncState(state);
+  } catch (error) {
+    console.error(`Error updating modification date for job ${jobId}:`, error);
+    return false;
   }
-  
-  // Create a new jobModificationDates object with existing dates
-  const updatedJobDates = { ...(state.jobModificationDates || {}) };
-  updatedJobDates[jobId] = modificationDate;
-  
-  // Create a clean updated state object
-  const updatedState = {
-    ...state,
-    jobModificationDates: updatedJobDates
-  };
-  
-  // Verify the update was applied in the state object
-  console.log(`Job modification dates count after update: ${Object.keys(updatedState.jobModificationDates).length}`);
-  
-  saveSyncState(updatedState);
 }
 
 /**
  * Get all stored job modification dates
- * @returns {Object} Object of job IDs mapped to modification dates
+ * @returns {Object} Map of job IDs to modification dates
  */
 function getJobModificationDates() {
   const state = loadSyncState();
@@ -368,58 +395,68 @@ function getJobModificationDates() {
 }
 
 /**
- * Update multiple job modification dates at once
- * @param {Object} jobDates - Object mapping job IDs to modification dates
+ * Store multiple job modification dates at once
+ * @param {Object} jobDates - Map of job IDs to modification dates
+ * @returns {boolean} Success status
  */
 function storeMultipleJobDates(jobDates) {
-  if (!jobDates || Object.keys(jobDates).length === 0) {
-    console.log('No job dates to store');
-    return;
+  if (!jobDates || typeof jobDates !== 'object') {
+    console.error('Invalid jobDates parameter provided to storeMultipleJobDates');
+    return false;
   }
   
-  console.log(`Storing modification dates for ${Object.keys(jobDates).length} jobs at once`);
-  const state = loadSyncState();
-  
-  // Create a new jobModificationDates object with existing dates
-  const updatedJobDates = { ...(state.jobModificationDates || {}) };
-  
-  // Update job dates in the new object
-  let updateCount = 0;
-  Object.entries(jobDates).forEach(([jobId, modDate]) => {
-    if (jobId && modDate) {
-      updatedJobDates[jobId] = modDate;
-      updateCount++;
+  try {
+    // Load state
+    const state = loadSyncState();
+    
+    // Ensure jobModificationDates exists
+    if (!state.jobModificationDates) {
+      state.jobModificationDates = {};
     }
-  });
-  
-  // Create a clean updated state object
-  const updatedState = {
-    ...state,
-    jobModificationDates: updatedJobDates
-  };
-  
-  console.log(`Updated modification dates for ${updateCount} jobs. Total job dates in state: ${Object.keys(updatedJobDates).length}`);
-  saveSyncState(updatedState);
+    
+    // Count how many new and updated entries we'll have
+    let newCount = 0;
+    let updatedCount = 0;
+    
+    // Update all provided job dates
+    Object.entries(jobDates).forEach(([jobId, modDate]) => {
+      if (state.jobModificationDates[jobId]) {
+        updatedCount++;
+      } else {
+        newCount++;
+      }
+      state.jobModificationDates[jobId] = modDate;
+    });
+    
+    console.log(`Stored ${Object.keys(jobDates).length} job modification dates (${newCount} new, ${updatedCount} updated)`);
+    
+    // Save state
+    return saveSyncState(state);
+  } catch (error) {
+    console.error('Error storing multiple job dates:', error);
+    return false;
+  }
 }
 
 /**
- * Get the current sync state
- * @returns {Object} The current sync state
+ * Get the current sync state object
+ * @returns {Object} Current sync state
  */
 function getSyncState() {
-  const state = loadSyncState();
-  return state;
+  return loadSyncState();
 }
 
+// Export all functions
 export default {
   getLastSyncTime,
   updateLastSyncTime,
   recordSyncError,
   resetSyncState,
-  loadSyncState,
   jobNeedsUpdate,
   updateJobModificationDate,
   getJobModificationDates,
   storeMultipleJobDates,
+  loadSyncState,
+  saveSyncState,
   getSyncState
 }; 
