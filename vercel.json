@@ -10,39 +10,14 @@
       "use": "@vercel/static"
     }
   ],
-  "routes": [
-    {
-      "src": "/api/events",
-      "dest": "src/index.js",
-      "headers": {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Connection": "keep-alive"
-      }
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "src/index.js"
-    },
-    {
-      "src": "/health",
-      "dest": "src/index.js"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "public/favicon.ico"
-    },
-    {
-      "src": "^/static/(.*)",
-      "dest": "public/static/$1"
-    },
-    {
-      "src": "/(.*)\\.(.+)",
-      "dest": "public/$1.$2"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "src/index.js"
-    }
+  "rewrites": [
+    { "source": "/api/events", "destination": "src/index.js" },
+    { "source": "/api/(.*)", "destination": "src/index.js" },
+    { "source": "/health", "destination": "src/index.js" },
+    { "source": "/favicon.ico", "destination": "public/favicon.ico" },
+    { "source": "/static/(.*)", "destination": "public/static/$1" },
+    { "source": "/(.*)\\.(.+)", "destination": "public/$1.$2" },
+    { "source": "/(.*)", "destination": "src/index.js" }
   ],
   "headers": [
     {
@@ -63,6 +38,23 @@
         {
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/api/events",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Connection",
+          "value": "keep-alive"
         }
       ]
     }
