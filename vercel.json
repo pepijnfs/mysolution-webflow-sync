@@ -12,12 +12,24 @@
   ],
   "routes": [
     {
+      "src": "/api/events",
+      "dest": "src/index.js",
+      "headers": {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Connection": "keep-alive"
+      }
+    },
+    {
       "src": "/api/(.*)",
       "dest": "src/index.js"
     },
     {
       "src": "/health",
       "dest": "src/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "public/$1"
     },
     {
       "src": "/(.*)",

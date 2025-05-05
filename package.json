@@ -15,7 +15,8 @@
     "test:candidate": "mocha 'src/test/candidate-submit.test.js'",
     "test:job-application": "mocha 'src/test/job-application-api.test.js'",
     "test:job-minimal": "mocha 'src/test/job-application-minimal.test.js'",
-    "test:api": "mocha 'src/test/*-api.test.js'"
+    "test:api": "mocha 'src/test/*-api.test.js'",
+    "deploy": "vercel --prod"
   },
   "keywords": [],
   "author": "",

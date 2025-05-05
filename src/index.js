@@ -161,6 +161,17 @@ app.get('/health', (req, res) => {
   });
 });
 
+// API-specific health check
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'API is responding',
+    timestamp: new Date().toISOString(),
+    environment: config.app.nodeEnv,
+    version: process.env.npm_package_version || '1.0.0'
+  });
+});
+
 // Serve the HTML page for the root route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
