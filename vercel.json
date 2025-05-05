@@ -1,4 +1,29 @@
 {
+  "version": 2,
+  "builds": [
+    {
+      "src": "src/index.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "src/index.js"
+    },
+    {
+      "src": "/health",
+      "dest": "src/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "src/index.js"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
