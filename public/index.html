@@ -1105,7 +1105,7 @@
         // Calculate and display next scheduled sync time
         function updateNextSyncTime() {
             try {
-                const lastSyncText = document.getElementById('last-sync').textContent;
+                const lastSyncText = document.getElementById('last-incremental-sync').textContent;
                 if (lastSyncText && lastSyncText !== 'Loading...' && lastSyncText !== 'Unknown' && lastSyncText !== 'Error') {
                     const lastSync = new Date(lastSyncText);
                     

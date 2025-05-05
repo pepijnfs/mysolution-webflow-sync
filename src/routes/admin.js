@@ -313,52 +313,52 @@ router.post('/sync/run-incremental', async (req, res) => {
 
 /**
  * @route   GET /api/admin/jobs/count
- * @desc    Get counts of jobs in Mysolution and Webflow
+ * @desc    Get job counts from both systems
  * @access  Private (Admin)
  */
 router.get('/jobs/count', async (req, res) => {
   try {
-    // Check if request has a cache marker to reduce processing
-    const cacheMarker = req.query.cache;
+    // Use cache for dashboard if requested
+    const useCache = req.query.cache === 'dashboard';
+    const cacheKey = 'job_counts';
+    const cacheTTL = 5 * 60 * 1000; // 5 minutes
     
-    // Return cached data for dashboard polling requests
-    if (cacheMarker === 'dashboard') {
-      // Use cached job counts if available in memory and not older than 5 minutes
-      const cachedData = router.cachedJobCounts;
-      const cacheAge = router.cachedJobCountsTime ? (Date.now() - router.cachedJobCountsTime) : Infinity;
-      
-      if (cachedData && cacheAge < 300000) { // 5 minutes cache
+    // Check if we can use cached data
+    if (useCache) {
+      const cachedData = req.app.locals[cacheKey];
+      if (cachedData && (Date.now() - cachedData.timestamp < cacheTTL)) {
         return res.json({
           success: true,
-          data: cachedData,
+          data: cachedData.data,
           cached: true
         });
       }
     }
     
-    // Only log at debug level for this frequently called endpoint
-    if (logger.level === 'debug') {
-      logger.debug('Fetching job counts from Mysolution and Webflow');
-    }
-    
-    // Get count of jobs in Webflow
-    const webflowJobsResponse = await webflowAPI.getJobs();
+    // Fetch data from both systems
+    const webflowJobsResponse = await webflowAPI.getJobs().catch(() => ({ items: [] }));
     const webflowJobCount = webflowJobsResponse.items ? webflowJobsResponse.items.length : 0;
     
-    // Get count of jobs in Mysolution
-    const mysolutionJobs = await mysolutionAPI.getJobs();
-    const mysolutionJobCount = mysolutionJobs ? mysolutionJobs.length : 0;
+    const mysolutionJobs = await mysolutionAPI.getJobs().catch(() => []);
+    const mysolutionJobCount = mysolutionJobs.length;
     
-    // Cache the results
-    router.cachedJobCounts = {
+    const data = {
+      mysolution: mysolutionJobCount,
       webflow: webflowJobCount,
-      mysolution: mysolutionJobCount
+      timestamp: new Date().toISOString()
     };
-    router.cachedJobCountsTime = Date.now();
+    
+    // Cache the data for dashboard
+    if (useCache) {
+      req.app.locals[cacheKey] = {
+        data,
+        timestamp: Date.now()
+      };
+    }
     
     res.json({
       success: true,
-      data: router.cachedJobCounts
+      data
     });
   } catch (error) {
     logger.error('Error getting job counts:', error);
@@ -426,26 +426,36 @@ router.get('/sync/status', (req, res) => {
 
 /**
  * @route   GET /api/admin/sync/schedule/status
- * @desc    Get status of scheduled syncing
+ * @desc    Get sync schedule configuration
  * @access  Private (Admin)
  */
 router.get('/sync/schedule/status', (req, res) => {
-  // For the cron patterns, try to get them from the global scheduler objects
-  const incrementalCronPattern = global.scheduledJobsSync?.options?.scheduled?.cron || 
-                     `*/${config.sync.syncIntervalMinutes} * * * *`;
-  const fullSyncCronPattern = global.scheduledFullJobsSync?.options?.scheduled?.cron ||
-                     '0 7 * * *'; // Daily at 7 AM
-  
-  const status = {
-    success: true,
-    data: {
+  try {
+    // Get interval in minutes from config
+    const intervalMs = config.sync.interval;
+    const intervalMinutes = Math.ceil(intervalMs / 60000);
+    
+    const scheduleData = {
       enabled: config.sync.enableScheduledSync,
-      interval: config.sync.syncIntervalMinutes,
-      incrementalCronPattern: incrementalCronPattern,
-      fullSyncCronPattern: fullSyncCronPattern
-    }
-  };
-  res.json(status);
+      interval: intervalMinutes,
+      intervalMs: intervalMs,
+      fullSyncTime: '07:00',
+      fullSyncCron: '0 7 * * *',
+      incrementalSyncCron: `*/${intervalMinutes} * * * *`
+    };
+    
+    res.json({
+      success: true,
+      data: scheduleData
+    });
+  } catch (error) {
+    logger.error('Error getting sync schedule:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server Error',
+      message: error.message
+    });
+  }
 });
 
 /**
