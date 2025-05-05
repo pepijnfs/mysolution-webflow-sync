@@ -21,7 +21,7 @@ The following environment variables must be set in your Vercel project settings 
 - `WEBFLOW_API_TOKEN`: Your Webflow API token
 - `WEBFLOW_SITE_ID`: Your Webflow site ID
 - `WEBFLOW_JOBS_COLLECTION_ID`: ID of the Webflow collection for jobs
-- `WEBFLOW_CANDIDATES_COLLECTION_ID`: ID of the Webflow collection for candidates
+- `WEBFLOW_CANDIDATES_COLLECTION_ID`: ID of the Webflow collection for candidates (must be a valid ID, not a placeholder)
 - `WEBFLOW_SECTORS_COLLECTION_ID`: ID of the Webflow collection for sectors
 - `WEBFLOW_API_TIMEOUT`: Set to `30000` (30 seconds)
 - `WEBFLOW_RATE_LIMIT`: Set to `60` (requests per minute)
@@ -35,7 +35,7 @@ The following environment variables must be set in your Vercel project settings 
 - `ENABLE_SCHEDULED_SYNC`: Set to `true` to enable scheduled syncs
 
 ### Logging Settings
-- `LOG_LEVEL`: Set to `info` for production
+- `LOG_LEVEL`: Set to `info` for production, `debug` for troubleshooting
 - `LOG_CONSOLE`: Set to `true`
 - `HTTP_REQUEST_LOGGING`: Set to `true`
 - `HTTP_LOG_LEVEL`: Set to `info`
@@ -43,6 +43,13 @@ The following environment variables must be set in your Vercel project settings 
 - `LOG_SKIP_ROUTES`: Set to `/health,/static,/api/admin/jobs/count,/api/admin/sync/status`
 - `REQUEST_ID_HEADER`: Set to `x-request-id`
 - `GENERATE_REQUEST_ID`: Set to `true`
+
+## Important Notes
+
+- Ensure all collection IDs are valid and not placeholder values
+- Verify that `WEBFLOW_COLLECTION_ID` (if used) matches `WEBFLOW_JOBS_COLLECTION_ID`
+- Make sure `NODE_ENV` is set to `production` for Vercel deployments
+- Initially set `LOG_LEVEL` to `debug` to help troubleshoot deployment issues
 
 ## Setting Up Environment Variables in Vercel
 
