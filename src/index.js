@@ -100,7 +100,7 @@ app.use('/api', apiRoutes);
  * @desc    Vercel cron job endpoint for incremental sync (every 5 minutes)
  * @access  Public (Vercel cron only)
  */
-app.post('/api/cron/incremental-sync', async (req, res) => {
+app.get('/api/cron/incremental-sync', async (req, res) => {
   try {
     // Verify this is actually coming from Vercel cron
     const authHeader = req.headers.authorization;
@@ -169,7 +169,7 @@ app.post('/api/cron/incremental-sync', async (req, res) => {
  * @desc    Vercel cron job endpoint for full sync (daily at 7 AM)
  * @access  Public (Vercel cron only)
  */
-app.post('/api/cron/full-sync', async (req, res) => {
+app.get('/api/cron/full-sync', async (req, res) => {
   try {
     // Verify this is actually coming from Vercel cron
     const authHeader = req.headers.authorization;
