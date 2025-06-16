@@ -94,6 +94,134 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', apiRoutes);
 
+// Vercel cron endpoints (must be directly mounted at /api/cron)
+/**
+ * @route   POST /api/cron/incremental-sync
+ * @desc    Vercel cron job endpoint for incremental sync (every 5 minutes)
+ * @access  Public (Vercel cron only)
+ */
+app.post('/api/cron/incremental-sync', async (req, res) => {
+  try {
+    // Verify this is actually coming from Vercel cron
+    const authHeader = req.headers.authorization;
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      logger.warn('Unauthorized cron request for incremental sync', { 
+        ip: req.ip, 
+        userAgent: req.headers['user-agent'] 
+      });
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Unauthorized' 
+      });
+    }
+    
+    // Skip if exactly 7 AM as full sync will run at that time
+    const now = new Date();
+    if (now.getHours() === 7 && now.getMinutes() === 0) {
+      logger.info('Skipping incremental sync at 7 AM as full sync will run');
+      return res.json({ 
+        success: true, 
+        message: 'Skipped incremental sync at 7 AM (full sync time)',
+        skipped: true
+      });
+    }
+    
+    const syncId = `vercel-incremental-sync-${Date.now()}`;
+    logger.info('Running Vercel cron incremental jobs sync', { syncId });
+    
+    const result = await incrementalJobsSync();
+    
+    logger.info('Vercel cron incremental jobs sync completed successfully', { 
+      syncId, 
+      result: {
+        successful: result.successful || 0,
+        failed: result.failed || 0,
+        skipped: result.skipped || 0
+      }
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Incremental sync completed successfully',
+      syncId,
+      result
+    });
+    
+  } catch (error) {
+    const syncId = `vercel-incremental-sync-error-${Date.now()}`;
+    logger.error('Error in Vercel cron incremental jobs sync', { 
+      syncId, 
+      error: error.message, 
+      stack: error.stack 
+    });
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error during incremental sync',
+      syncId,
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/cron/full-sync
+ * @desc    Vercel cron job endpoint for full sync (daily at 7 AM)
+ * @access  Public (Vercel cron only)
+ */
+app.post('/api/cron/full-sync', async (req, res) => {
+  try {
+    // Verify this is actually coming from Vercel cron
+    const authHeader = req.headers.authorization;
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      logger.warn('Unauthorized cron request for full sync', { 
+        ip: req.ip, 
+        userAgent: req.headers['user-agent'] 
+      });
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Unauthorized' 
+      });
+    }
+    
+    const syncId = `vercel-full-sync-${Date.now()}`;
+    logger.info('Running Vercel cron FULL jobs sync (daily 7 AM process)', { syncId });
+    
+    const result = await jobsSync(); // Run full sync
+    
+    logger.info('Vercel cron full jobs sync completed successfully', { 
+      syncId, 
+      result: {
+        successful: result.successful || 0,
+        failed: result.failed || 0,
+        skipped: result.skipped || 0
+      }
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Full sync completed successfully',
+      syncId,
+      result
+    });
+    
+  } catch (error) {
+    const syncId = `vercel-full-sync-error-${Date.now()}`;
+    logger.error('Error in Vercel cron full jobs sync', { 
+      syncId, 
+      error: error.message, 
+      stack: error.stack 
+    });
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error during full sync',
+      syncId,
+      message: error.message
+    });
+  }
+});
+
 // Static files
 app.use(express.static(path.join(__dirname, '../public')));
 
