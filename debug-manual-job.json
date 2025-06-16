@@ -1,0 +1,118 @@
+{
+  "attributes": {
+    "type": "msf__Job__c",
+    "url": "/services/data/v64.0/sobjects/msf__Job__c/a0wd1000000bn9rAAA"
+  },
+  "Id": "a0wd1000000bn9rAAA",
+  "OwnerId": "005d1000001NSSrAAO",
+  "IsDeleted": false,
+  "Name": "\"Live Demo Specialist voor Innovatieve Vacaturepresentaties\"",
+  "RecordTypeId": "012d1000000GyGMAA0",
+  "CreatedDate": "2025-06-16T12:47:03.000+0000",
+  "CreatedById": "005d1000001NSSrAAO",
+  "LastModifiedDate": "2025-06-16T14:56:53.000+0000",
+  "LastModifiedById": "005d1000001NSSrAAO",
+  "SystemModstamp": "2025-06-16T14:56:53.000+0000",
+  "msf__Account_Name__c": "Mysolution BV",
+  "msf__Account__c": "001d1000009Vf0AAAS",
+  "msf__Accountmanager__c": "005d10000016Ji1AAE",
+  "msf__Application_Procedure__c": "Wat ga je doen?<br>",
+  "msf__Collective_Agreement__c": "Mysolution uitzend (7384)",
+  "msf__Employment_Conditions__c": "Wat wij bieden",
+  "msf__Experience_Level__c": "Starter",
+  "msf__Hours_Per_Week__c": 40,
+  "msf__Job_Description__c": "Omschrijving<br>Ben jij klaar om je carrière naar een hoger niveau te tillen? Wij bieden je een unieke kans om deel uit te maken van een dynamisch team binnen een snelgroeiend bedrijf. Als pionier in de industrie streven we ernaar om onze klanten de beste oplossingen te bieden. Wij zijn op zoek naar gedreven individuen die ons helpen onze ambitieuze doelen te bereiken. Je zult werken in een inspirerende omgeving waar innovatie en samenwerking centraal staan. We waarderen jouw input en bieden volop mogelijkheden voor persoonlijke en professionele groei.<br><ul><li>Uitdagende projecten met ruimte voor eigen inbreng</li><li>Ondersteuning bij het ontwikkelen van jouw vaardigheden</li><li>Een competitief salaris en aantrekkelijke secundaire arbeidsvoorwaarden</li></ul>",
+  "msf__Job_Number__c": "2025-00738",
+  "msf__Job_Requirements__c": "<span style=\"background-color: rgb(255, 255, 255);\">Jouw profiel</span><br>Wij zijn op zoek naar een enthousiaste professional die beschikt over uitstekende communicatieve vaardigheden en een sterke teamgeest. De ideale kandidaat heeft ervaring in projectmanagement en is bedreven in het gebruik van moderne technologieën. Flexibiliteit en het vermogen om snel aan te passen aan veranderende omstandigheden zijn essentieel. Daarnaast is een proactieve houding en het vermogen om zelfstandig te werken van groot belang.<br><ul><li>Uitstekende communicatieve vaardigheden</li><li>Ervaring in projectmanagement</li><li>Kennis van moderne technologieën</li><li>Flexibiliteit en aanpassingsvermogen</li><li>Proactieve houding</li><li>Zelfstandig kunnen werken</li></ul><br>",
+  "msf__Label__c": "Mysolution",
+  "msf__Linked_To_Master_Job__c": "a0wd1000000LAu1AAG",
+  "msf__My_Team__c": false,
+  "msf__Professional_Field__c": "Bouw",
+  "msf__Publish_On_Jobboards__c": false,
+  "msf__Recruiter__c": "005d1000001NSSrAAO",
+  "msf__Requested_Quantity__c": 1,
+  "msf__Show_On_Internal__c": false,
+  "msf__Show_On_Website__c": true,
+  "msf__Status__c": "Online",
+  "msf__Title__c": "Wervende titel<br>",
+  "msf__Total_Cost1__c": 0,
+  "msf__Total_Profit1__c": 0,
+  "msf__Total_send_Job_Alerts__c": 0,
+  "msf__Worklocation_Geocodes__c": null,
+  "msf__Generate_Job_Alert__c": false,
+  "msf__Allow_Multiple_Applications__c": false,
+  "msf__My_Team_Group__c": false,
+  "msf__Job_Language__c": "nl_NL",
+  "BS_Soort_dienstverband__c": "Interim",
+  "BS_Type_dienstverband__c": "Contract",
+  "BS_Provincie__c": "Gelderland",
+  "BS_Uren_per_week__c": "16–24 uur",
+  "BS_Sector__c": "Medical Devices & MedTech",
+  "Uurtarief__c": "In overleg",
+  "Interne_vacature__c": false,
+  "Owner": {
+    "attributes": {
+      "type": "Name",
+      "url": "/services/data/v64.0/sobjects/User/005d1000001NSSrAAO"
+    },
+    "Id": "005d1000001NSSrAAO",
+    "Name": "Bart Schipper"
+  },
+  "RecordType": {
+    "attributes": {
+      "type": "RecordType",
+      "url": "/services/data/v64.0/sobjects/RecordType/012d1000000GyGMAA0"
+    },
+    "Id": "012d1000000GyGMAA0",
+    "Name": "Publication"
+  },
+  "CreatedBy": {
+    "attributes": {
+      "type": "User",
+      "url": "/services/data/v64.0/sobjects/User/005d1000001NSSrAAO"
+    },
+    "Id": "005d1000001NSSrAAO",
+    "Name": "Bart Schipper"
+  },
+  "LastModifiedBy": {
+    "attributes": {
+      "type": "User",
+      "url": "/services/data/v64.0/sobjects/User/005d1000001NSSrAAO"
+    },
+    "Id": "005d1000001NSSrAAO",
+    "Name": "Bart Schipper"
+  },
+  "msf__Account__r": {
+    "attributes": {
+      "type": "Account",
+      "url": "/services/data/v64.0/sobjects/Account/001d1000009Vf0AAAS"
+    },
+    "Id": "001d1000009Vf0AAAS",
+    "Name": "Mysolution BV"
+  },
+  "msf__Accountmanager__r": {
+    "attributes": {
+      "type": "User",
+      "url": "/services/data/v64.0/sobjects/User/005d10000016Ji1AAE"
+    },
+    "Id": "005d10000016Ji1AAE",
+    "Name": "Mysolution Recruitment"
+  },
+  "msf__Linked_To_Master_Job__r": {
+    "attributes": {
+      "type": "msf__Job__c",
+      "url": "/services/data/v64.0/sobjects/msf__Job__c/a0wd1000000LAu1AAG"
+    },
+    "Id": "a0wd1000000LAu1AAG",
+    "Name": "Live Demo vacature"
+  },
+  "msf__Recruiter__r": {
+    "attributes": {
+      "type": "User",
+      "url": "/services/data/v64.0/sobjects/User/005d1000001NSSrAAO"
+    },
+    "Id": "005d1000001NSSrAAO",
+    "Name": "Bart Schipper"
+  },
+  "msf__Company_Description__c": null
+}

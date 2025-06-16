@@ -132,21 +132,25 @@ class MysolutionAPI {
   async getChangedJobs(lastSyncTime, params = {}) {
     try {
       if (!lastSyncTime) {
-        logger.info('No last sync time provided, fetching all jobs');
-        return this.getJobs(params);
+        console.log('No lastSyncTime provided, returning all jobs');
+        return await this.getJobs(params);
       }
 
-      // Create a new date object from the lastSyncTime
-      const lastSync = new Date(lastSyncTime);
+      // Ensure the lastSyncTime is properly formatted for API consumption
+      const lastSyncDate = new Date(lastSyncTime);
+      if (isNaN(lastSyncDate.getTime())) {
+        console.log(`Invalid lastSyncTime provided: ${lastSyncTime}, returning all jobs`);
+        return await this.getJobs(params);
+      }
+
+      // Format the date for Salesforce API (ISO format is typically expected)
+      const formattedLastSync = lastSyncDate.toISOString();
       
-      // Format lastSync for the Mysolution API
-      const formattedLastSync = lastSync.toISOString();
+      console.log(`Getting jobs changed since: ${formattedLastSync} (from input: ${lastSyncTime})`);
+      logger.info(`Attempting to fetch jobs modified since ${formattedLastSync}`);
       
-      // Try two approaches:
-      // 1. First, try with API filtering parameters
-      // 2. If that doesn't work, fetch all and filter client-side
-      
-      // Approach 1: API filtering
+      // Approach 1: Try API-level filtering first
+      // This is more efficient if the API supports it
       logger.info(`Attempting API filtering for jobs modified since ${formattedLastSync}`);
       
       // We'll try with multiple parameter variations that might work with the API
@@ -170,23 +174,39 @@ class MysolutionAPI {
         const jobCount = response.data ? response.data.length : 0;
         console.log(`INCREMENTAL SYNC: API filtered response returned ${jobCount} jobs`);
         
-        // If we got jobs back, assume filtering worked
+        // If we got jobs back, assume filtering worked and validate the results
         if (jobCount > 0) {
-          logger.info(`API filtering returned ${jobCount} jobs modified since ${formattedLastSync}`);
-          return response.data;
+          // Double-check that returned jobs are actually newer than lastSyncTime
+          const validatedJobs = response.data.filter(job => {
+            if (!job.LastModifiedDate) {
+              console.log(`Warning: Job ${job.Id} from API has no LastModifiedDate, including for safety`);
+              return true;
+            }
+            const jobModDate = new Date(job.LastModifiedDate);
+            const isNewer = jobModDate > lastSyncDate;
+            if (!isNewer) {
+              console.log(`Warning: Job ${job.Id} from API is not newer than lastSync (${job.LastModifiedDate} <= ${formattedLastSync})`);
+            }
+            return isNewer;
+          });
+          
+          console.log(`API validation: ${validatedJobs.length} of ${jobCount} jobs are actually newer than last sync`);
+          logger.info(`API filtering returned ${validatedJobs.length} validated jobs modified since ${formattedLastSync}`);
+          return validatedJobs;
         } else {
-          console.log('API filtering returned 0 jobs - will try client-side filtering as fallback');
+          console.log('API filtering returned 0 jobs - will verify with client-side filtering');
         }
       } catch (error) {
         console.log(`API filtering attempt failed with error: ${error.message}. Trying client-side filtering.`);
       }
       
-      // Approach 2: Client-side filtering
-      // Since API filtering didn't work, get all jobs and filter them ourselves
+      // Approach 2: Client-side filtering (more reliable fallback)
+      // Since API filtering didn't work or returned suspicious results, get all jobs and filter them ourselves
       logger.info(`API filtering unsuccessful, falling back to client-side filtering for jobs modified since ${formattedLastSync}`);
       console.log('INCREMENTAL SYNC: Falling back to client-side filtering by date');
       
       const allJobs = await this.getJobs(params);
+      console.log(`Fetched ${allJobs.length} total jobs for client-side filtering`);
       
       // The getJobs method already analyzes date fields, now filter based on that
       // Use the most reliable date field for filtering
@@ -194,43 +214,68 @@ class MysolutionAPI {
         const analysis = analyzeJobModificationDates(job);
         
         if (!analysis.hasModificationDate) {
-          console.log(`WARNING: Job ${job.Id} has no modification date, including by default`);
-          return true; // Include jobs with no modification date
+          console.log(`WARNING: Job ${job.Id} (${job.Name || 'Unnamed'}) has no modification date, including by default`);
+          return true; // Include jobs with no modification date to be safe
         }
         
         const jobModDate = new Date(analysis.recommendedValue);
-        const lastSyncDate = new Date(lastSyncTime);
         
-        // Make sure we're comparing the dates correctly
-        // If the job was modified after our last sync time, include it
-        const isNewer = jobModDate > lastSyncDate;
+        // Add timezone awareness - ensure we're comparing dates correctly
+        const lastSyncDateWithBuffer = new Date(lastSyncDate.getTime() - 1000); // 1 second buffer for precision issues
         
-        // Log details for every job to diagnose issues
-        console.log(`Job ${job.Id || 'Unknown'} (${job.Name || 'Unnamed'}):`);
-        console.log(`  - Modification field: ${analysis.recommendedField}`);
-        console.log(`  - Modification date: ${analysis.recommendedValue}`);
-        console.log(`  - Last sync time: ${lastSyncTime}`);
-        console.log(`  - Include in sync: ${isNewer ? 'YES (newer)' : 'NO (not modified)'}`);
+        // If the job was modified after our last sync time (with small buffer), include it
+        const isNewer = jobModDate > lastSyncDateWithBuffer;
+        
+        // Enhanced logging for debugging
+        if (isNewer) {
+          console.log(`✅ Including job ${job.Id} (${job.Name || 'Unnamed'}):`);
+          console.log(`   Modification field: ${analysis.recommendedField}`);
+          console.log(`   Modification date: ${analysis.recommendedValue}`);
+          console.log(`   Last sync time: ${formattedLastSync}`);
+          console.log(`   Time difference: ${jobModDate.getTime() - lastSyncDate.getTime()}ms`);
+        } else {
+          // Only log a few examples to avoid spam
+          if (Math.random() < 0.1) { // Log ~10% of skipped jobs
+            console.log(`❌ Skipping job ${job.Id} (not modified since last sync)`);
+          }
+        }
         
         return isNewer;
       });
       
-      logger.info(`Client-side filtering found ${filteredJobs.length} jobs modified since ${formattedLastSync} out of ${allJobs.length} total jobs`);
-      console.log(`INCREMENTAL SYNC: Client-side filtering found ${filteredJobs.length} jobs modified since ${formattedLastSync}`);
+      const totalCount = allJobs.length;
+      const foundCount = filteredJobs.length;
+      const skippedCount = totalCount - foundCount;
       
-      if (filteredJobs.length === 0) {
+      logger.info(`Client-side filtering found ${foundCount} jobs modified since ${formattedLastSync} out of ${totalCount} total jobs (${skippedCount} skipped)`);
+      console.log(`INCREMENTAL SYNC: Client-side filtering found ${foundCount} jobs modified since ${formattedLastSync}`);
+      
+      if (foundCount === 0) {
         console.log(`INCREMENTAL SYNC: No jobs have been modified since last sync ${formattedLastSync}`);
       } else {
-        console.log(`INCREMENTAL SYNC: Found ${filteredJobs.length} jobs modified since last sync:`);
-        filteredJobs.forEach(job => {
-          console.log(`  - Job ${job.Id || 'Unknown'} (${job.Name || 'Unnamed'})`);
+        console.log(`INCREMENTAL SYNC: Found ${foundCount} jobs modified since last sync:`);
+        // Log first few jobs as examples
+        filteredJobs.slice(0, 5).forEach(job => {
+          console.log(`  - Job ${job.Id} (${job.Name || 'Unnamed'}) - Modified: ${job.LastModifiedDate}`);
         });
+        if (foundCount > 5) {
+          console.log(`  ... and ${foundCount - 5} more jobs`);
+        }
       }
       
       return filteredJobs;
     } catch (error) {
       logger.error('Error fetching changed jobs from Mysolution:', error);
-      throw error;
+      console.log(`ERROR in getChangedJobs: ${error.message}`);
+      console.log('Falling back to returning all jobs due to error');
+      
+      // As a last resort, return all jobs if filtering fails completely
+      try {
+        return await this.getJobs(params);
+      } catch (fallbackError) {
+        logger.error('Error in fallback getJobs call:', fallbackError);
+        throw new Error(`Failed to fetch jobs: ${error.message}. Fallback also failed: ${fallbackError.message}`);
+      }
     }
   }
 

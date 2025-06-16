@@ -1,0 +1,131 @@
+[
+  {
+    "id": "6808f534f82da08047488cd4",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": null,
+    "lastUpdated": "2025-05-04T14:50:50.698Z",
+    "createdOn": "2025-04-23T14:12:04.074Z",
+    "isArchived": false,
+    "isDraft": true,
+    "fieldData": {
+      "name": "Chemical Manufacturing",
+      "slug": "chemical-manufacturing",
+      "company-logo-isotype": {
+        "fileId": "681734eecb72301138675238",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/681734eecb72301138675238_flask-icon.svg",
+        "alt": null
+      }
+    },
+    "name": "Chemical Manufacturing",
+    "_id": "6808f534f82da08047488cd4"
+  },
+  {
+    "id": "65f935a2e6b9d7f69afed2bb",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2024-08-28T06:15:19.005Z",
+    "lastUpdated": "2024-08-28T06:15:14.865Z",
+    "createdOn": "2024-03-13T08:45:18.005Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "name": "Interne Vacature",
+      "slug": "interne-vacature",
+      "sector-introduction": "Biedt kansen binnen Base Life Sciences zelf, voor diegenen die willen bijdragen aan het succes van het bedrijf door interne processen te versterken, klantrelaties te beheren of nieuwe talenten te werven.",
+      "blog-post-excerpt": "Biedt mogelijkheden om intern bij Base Life Sciences te groeien en bij te dragen aan ons succes.",
+      "company-excerpt-large": "Biedt kansen binnen Base Life Sciences zelf, voor diegenen die willen bijdragen aan het succes van het bedrijf door interne processen te versterken, klantrelaties te beheren of nieuwe talenten te werven.",
+      "company-logo-isotype": {
+        "fileId": "65f935a2e6b9d7f69afed357",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/65f8735ff86a55d196cf1079_company.svg",
+        "alt": null
+      },
+      "header-logo": {
+        "fileId": "66cec063eba159b9edb8e532",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/66cec063eba159b9edb8e532_Base%20Talent%20in%20Life%20Sciences.png",
+        "alt": null
+      }
+    },
+    "name": "Interne Vacature",
+    "_id": "65f935a2e6b9d7f69afed2bb"
+  },
+  {
+    "id": "65f935a2e6b9d7f69afed2b0",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-02-04T09:43:22.000Z",
+    "lastUpdated": "2025-02-04T09:43:22.000Z",
+    "createdOn": "2024-02-27T18:00:18.421Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "name": "Pharma & Healthcare",
+      "slug": "pharma-healthcare",
+      "company-logo-isotype": {
+        "fileId": "65f935a2e6b9d7f69afed2a7",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/65f822788c109b5c8170bfff_molecule-svgrepo-com.svg",
+        "alt": null
+      },
+      "blog-post-excerpt": "Farmaceutische productiebedrijven, verpakkingsbedrijven, groothandels, laboratoria, onderzoekscentra, ziekenhuizen en apotheken.",
+      "company-excerpt-large": "Quality Assurance, Quality Control, Laboratorium, Safety & Environment, Productie Management, Operations Management, Engineering en Supply Chain.",
+      "header-logo": {
+        "fileId": "66cec04288e2211d3fc13a56",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/66cec04288e2211d3fc13a56_Base%20Talent%20in%20Pharma.png",
+        "alt": null
+      }
+    },
+    "name": "Pharma & Healthcare",
+    "_id": "65f935a2e6b9d7f69afed2b0"
+  },
+  {
+    "id": "65f935a2e6b9d7f69afed2af",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-02-04T09:43:28.439Z",
+    "lastUpdated": "2025-02-04T09:43:28.439Z",
+    "createdOn": "2024-02-27T17:59:50.615Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "name": "Food & FMCG",
+      "slug": "food-fmcg",
+      "company-logo-isotype": {
+        "fileId": "65f935a2e6b9d7f69afed2c4",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/65f82280cb837c231020e4f4_wheat-svgrepo-com.svg",
+        "alt": null
+      },
+      "blog-post-excerpt": "Producenten van voeding, dranken, dierenvoeding, distributeurs, groothandels, grondstoffenproducenten en -verwerkers.",
+      "company-excerpt-large": "Quality Assurance, Quality Control, Laboratorium, Safety & Environment, Productie Management, Operations Management, Engineering en Supply Chain.",
+      "header-logo": {
+        "fileId": "66cec04ed466a439da7ffc0b",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/66cec04ed466a439da7ffc0b_Base%20Talent%20in%20Food.png",
+        "alt": null
+      }
+    },
+    "name": "Food & FMCG",
+    "_id": "65f935a2e6b9d7f69afed2af"
+  },
+  {
+    "id": "65f935a2e6b9d7f69afed2ae",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-02-04T09:43:45.434Z",
+    "lastUpdated": "2025-02-04T09:43:45.434Z",
+    "createdOn": "2024-02-27T17:59:24.111Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "name": "Medical Devices & MedTech",
+      "slug": "medical-devices-medtech",
+      "company-logo-isotype": {
+        "fileId": "65f935a2e6b9d7f69afed2f4",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/65f8228751eeb4bf42e770bc_data-svgrepo-com%20(1).svg",
+        "alt": null
+      },
+      "blog-post-excerpt": "Producenten van medische hulpmiddelen, ontwikkelaars van diagnostische apparatuur, leveranciers van medische technologie.",
+      "company-excerpt-large": "Quality Assurance, Quality Control, Laboratorium, Safety & Environment, Productie Management, Operations Management, Engineering en Supply Chain.",
+      "header-logo": {
+        "fileId": "66cec063eba159b9edb8e532",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/66cec063eba159b9edb8e532_Base%20Talent%20in%20Life%20Sciences.png",
+        "alt": null
+      }
+    },
+    "name": "Medical Devices & MedTech",
+    "_id": "65f935a2e6b9d7f69afed2ae"
+  }
+]

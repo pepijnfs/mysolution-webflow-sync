@@ -532,6 +532,8 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
       'job-long-description-page': cleanExcerpt(mysolutionJob.msf__Title__c || ''),
       'job-requirements': formatRequirementsForWebflow(mysolutionJob.msf__Job_Requirements__c || ''),
       'job-description': formatHtmlContent(mysolutionJob.msf__Job_Description__c || ''),
+      'job-responsibilities': formatHtmlContent(mysolutionJob.msf__Application_Procedure__c || ''),
+      'vacature-wat-wij-bieden': formatHtmlContent(mysolutionJob.msf__Employment_Conditions__c || ''),
       'vacature-locatie': mysolutionJob.BS_Provincie__c || '',
       'vacature-type': vacatureType,
       'job-is-featured': mysolutionJob.msf__Show_On_Website__c || false,

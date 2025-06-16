@@ -188,65 +188,82 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
     
     if (incrementalOnly && lastSyncTime) {
       logger.info(`Fetching jobs changed since last sync: ${lastSyncTime}`);
-      mysolutionJobs = await mysolutionAPI.getJobs(); // Get all jobs, we'll filter client-side
-      logger.info(`Fetched ${mysolutionJobs.length} jobs from Mysolution, will filter by modification date`);
-      console.log(`📥 INCREMENTAL SYNC: Fetched ${mysolutionJobs.length} jobs from Mysolution database`);
       
-      // IMPORTANT: Client-side filtering - ONLY process jobs that have been modified since last sync
-      // We perform this filtering once and early to avoid any unnecessary processing
-      const lastSyncDate = new Date(lastSyncTime);
-      const initialCount = mysolutionJobs.length;
+      // IMPROVED: Use the dedicated getChangedJobs API method instead of manual filtering
+      console.log('📥 INCREMENTAL SYNC: Using getChangedJobs API for more reliable change detection...');
       
-      console.log(`\n=== 🔍 FILTERING: Only processing jobs modified after ${new Date(lastSyncTime).toLocaleString()} ===`);
-      
-      mysolutionJobs = mysolutionJobs.filter(job => {
-        const jobId = job.Id;
-        const jobModDate = job.LastModifiedDate ? new Date(job.LastModifiedDate) : null;
+      try {
+        // Try using the dedicated API method first
+        mysolutionJobs = await mysolutionAPI.getChangedJobs(lastSyncTime);
+        console.log(`📥 INCREMENTAL SYNC: getChangedJobs API returned ${mysolutionJobs.length} changed jobs`);
         
-        // If no modification date, assume it hasn't changed (safer to skip)
-        if (!jobModDate) {
-          console.log(`❓ Job ${jobId} has no modification date - SKIPPING update`);
-          skippedCount++;
-          return false;
+        // Validate the results - if we get 0 jobs, double-check with fallback method
+        if (mysolutionJobs.length === 0) {
+          console.log('⚠️ INCREMENTAL SYNC: getChangedJobs returned 0 jobs, double-checking with fallback method...');
+          
+          // Fallback: Get all jobs and filter manually as secondary verification
+          const allJobs = await mysolutionAPI.getJobs();
+          const lastSyncDate = new Date(lastSyncTime);
+          
+          const manuallyFilteredJobs = allJobs.filter(job => {
+            if (!job.LastModifiedDate) return false;
+            const jobModDate = new Date(job.LastModifiedDate);
+            return jobModDate > lastSyncDate;
+          });
+          
+          console.log(`📊 FALLBACK CHECK: Manual filtering found ${manuallyFilteredJobs.length} jobs modified since last sync`);
+          
+          // If manual filtering finds jobs but API didn't, use manual results
+          if (manuallyFilteredJobs.length > 0) {
+            console.log('⚠️ DISCREPANCY DETECTED: Using manually filtered results as API filtering may have failed');
+            mysolutionJobs = manuallyFilteredJobs;
+          } else {
+            console.log('✅ VERIFIED: No jobs have been modified since last sync');
+          }
         }
         
-        // Compare job modification date with last sync time
-        // CRITICAL CHECK: Only include jobs modified after the last sync
-        const isModifiedAfterLastSync = jobModDate > lastSyncDate;
+      } catch (error) {
+        console.log(`❌ INCREMENTAL SYNC: getChangedJobs API failed (${error.message}), falling back to manual filtering`);
+        logger.warn(`getChangedJobs API failed, using fallback: ${error.message}`);
         
-        // Only if the job passed the date check, also check against stored modification dates
-        let needsUpdate = true;
-        if (isModifiedAfterLastSync) {
-          needsUpdate = syncStateStore.jobNeedsUpdate(jobId, job.LastModifiedDate);
-        }
+        // Fallback to manual filtering
+        const allJobs = await mysolutionAPI.getJobs();
+        const lastSyncDate = new Date(lastSyncTime);
         
-        // Detailed logging for each job
-        console.log(`🔎 Job ${jobId} (${job.Name || 'Unnamed'}):`);
-        console.log(`  • Last modified: ${new Date(job.LastModifiedDate).toLocaleString()}`);
-        console.log(`  • Last sync time: ${new Date(lastSyncTime).toLocaleString()}`);
-        console.log(`  • Changed since last sync: ${isModifiedAfterLastSync ? '✅ YES' : '❌ NO'}`);
+        mysolutionJobs = allJobs.filter(job => {
+          if (!job.LastModifiedDate) {
+            console.log(`❓ Job ${job.Id} has no LastModifiedDate - including for safety`);
+            return true; // Include jobs without modification dates for safety
+          }
+          
+          const jobModDate = new Date(job.LastModifiedDate);
+          const isModified = jobModDate > lastSyncDate;
+          
+          if (isModified) {
+            console.log(`✅ Job ${job.Id} (${job.Name || 'Unnamed'}) modified: ${job.LastModifiedDate}`);
+          }
+          
+          return isModified;
+        });
         
-        if (isModifiedAfterLastSync) {
-          console.log(`  • Needs update based on detailed change detection: ${needsUpdate ? '✅ YES' : '❌ NO'}`);
-        }
-        
-        const shouldProcess = isModifiedAfterLastSync && needsUpdate;
-        console.log(`  • Will update in Webflow: ${shouldProcess ? '✅ YES (changes detected)' : '❌ NO (not modified)'}`);
-        
-        if (!shouldProcess) {
-          skippedCount++;
-        }
-        
-        return shouldProcess;
-      });
+        console.log(`📥 INCREMENTAL SYNC: Fallback filtering found ${mysolutionJobs.length} changed jobs`);
+      }
       
-      console.log(`\n=== 📊 FILTER RESULTS: ${mysolutionJobs.length} of ${initialCount} jobs need updating (${skippedCount} unchanged) ===`);
-      logger.info(`After date filtering: ${mysolutionJobs.length} jobs need updating, ${skippedCount} jobs skipped`);
+      // Log detailed information about what we found
+      if (mysolutionJobs.length > 0) {
+        console.log(`\n=== 📋 CHANGED JOBS SUMMARY ===`);
+        mysolutionJobs.forEach((job, index) => {
+          console.log(`${index + 1}. '${job.Name || 'Unnamed'}' (ID: ${job.Id})`);
+          console.log(`   Last modified: ${job.LastModifiedDate || 'Unknown'}`);
+        });
+      }
+      
+      logger.info(`After change detection: ${mysolutionJobs.length} jobs need updating`);
       
       // If no jobs need updating after filtering, we can stop here
       if (mysolutionJobs.length === 0) {
         console.log('✅ SYNC COMPLETE: No jobs need to be updated! All jobs are already in sync.');
-        logger.info('No jobs need updating after date filtering. Updating sync timestamp and exiting.');
+        logger.info('No jobs need updating after change detection. Updating sync timestamp and exiting.');
         
         // Still update the last sync time, even though no changes were made
         syncStateStore.updateLastSyncTime();
@@ -257,7 +274,7 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
           failed: 0,
           removeSuccessful: 0,
           removeFailed: 0,
-          skipped: skippedCount,
+          skipped: 0,
           noChanges: true
         };
       }
@@ -423,7 +440,7 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
       syncType: incrementalOnly ? 'incremental' : 'full',
       successful,
       failed,
-      skipped: skippedCount
+      skipped: 0
     });
     
     // Update last sync time
