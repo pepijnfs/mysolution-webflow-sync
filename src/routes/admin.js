@@ -336,8 +336,8 @@ router.get('/jobs/count', async (req, res) => {
     }
     
     // Fetch data from both systems
-    const webflowJobsResponse = await webflowAPI.getJobs().catch(() => ({ items: [] }));
-    const webflowJobCount = webflowJobsResponse.items ? webflowJobsResponse.items.length : 0;
+    const webflowJobs = await webflowAPI.getAllJobs().catch(() => []);
+    const webflowJobCount = webflowJobs.length;
     
     const mysolutionJobs = await mysolutionAPI.getJobs().catch(() => []);
     const mysolutionJobCount = mysolutionJobs.length;
