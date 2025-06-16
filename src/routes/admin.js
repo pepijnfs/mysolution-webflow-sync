@@ -7,6 +7,7 @@ import mysolutionAPI from '../api/mysolution.js';
 import syncStateStore from '../utils/syncStateStore.js';
 import { incrementalJobsSync, jobsSync } from '../services/jobsSync.js';
 import auth from '../utils/auth.js';
+import { getDeploymentInfo } from '../utils/deploymentInfo.js';
 
 const router = express.Router();
 
@@ -540,45 +541,222 @@ router.post('/sync/schedule/disable', (req, res) => {
  * @desc    Get deployment information including commit time
  * @access  Private (Admin)
  */
-router.get('/deployment/info', (req, res) => {
+router.get('/deployment/info', async (req, res) => {
   try {
-    const { exec } = require('child_process');
+    const deploymentInfo = await getDeploymentInfo();
     
-    // Get git commit info
-    exec('git log -1 --format="%H|%ci"', (error, stdout, stderr) => {
-      if (error) {
-        console.warn('Could not get git info:', error.message);
-        // Fallback to process start time if git is not available
-        res.json({
-          success: true,
-          data: {
-            deploymentTime: new Date(Date.now() - process.uptime() * 1000).toISOString(),
-            source: 'process_start'
-          }
-        });
-        return;
-      }
-      
-      const [commitHash, commitTime] = stdout.trim().split('|');
-      
-      res.json({
-        success: true,
-        data: {
-          deploymentTime: new Date(commitTime).toISOString(),
-          commitHash: commitHash.substring(0, 8), // Short hash
-          source: 'git_commit'
-        }
-      });
+    res.json({
+      success: true,
+      data: deploymentInfo
     });
   } catch (error) {
     logger.error('Error getting deployment info:', error);
-    // Fallback to process start time
-    res.json({
-      success: true,
-      data: {
-        deploymentTime: new Date(Date.now() - process.uptime() * 1000).toISOString(),
-        source: 'fallback'
+    res.status(500).json({
+      success: false,
+      error: 'Server Error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/cron/incremental-sync
+ * @desc    Vercel cron job endpoint for incremental sync (every 5 minutes)
+ * @access  Public (Vercel cron only)
+ */
+router.post('/cron/incremental-sync', async (req, res) => {
+  try {
+    // Verify this is actually coming from Vercel cron
+    const authHeader = req.headers.authorization;
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      logger.warn('Unauthorized cron request for incremental sync', { 
+        ip: req.ip, 
+        userAgent: req.headers['user-agent'] 
+      });
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Unauthorized' 
+      });
+    }
+    
+    // Skip if exactly 7 AM as full sync will run at that time
+    const now = new Date();
+    if (now.getHours() === 7 && now.getMinutes() === 0) {
+      logger.info('Skipping incremental sync at 7 AM as full sync will run');
+      return res.json({ 
+        success: true, 
+        message: 'Skipped incremental sync at 7 AM (full sync time)',
+        skipped: true
+      });
+    }
+    
+    const syncId = `vercel-incremental-sync-${Date.now()}`;
+    logger.info('Running Vercel cron incremental jobs sync', { syncId });
+    
+    const result = await incrementalJobsSync();
+    
+    logger.info('Vercel cron incremental jobs sync completed successfully', { 
+      syncId, 
+      result: {
+        processedJobs: result.processedJobs || 0,
+        newJobs: result.newJobs || 0,
+        updatedJobs: result.updatedJobs || 0,
+        duration: result.duration || 'unknown'
       }
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Incremental sync completed successfully',
+      syncId,
+      result
+    });
+    
+  } catch (error) {
+    const syncId = `vercel-incremental-sync-error-${Date.now()}`;
+    logger.error('Error in Vercel cron incremental jobs sync', { 
+      syncId, 
+      error: error.message, 
+      stack: error.stack 
+    });
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error during incremental sync',
+      syncId,
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/cron/full-sync
+ * @desc    Vercel cron job endpoint for full sync (daily at 7 AM)
+ * @access  Public (Vercel cron only)
+ */
+router.post('/cron/full-sync', async (req, res) => {
+  try {
+    // Verify this is actually coming from Vercel cron
+    const authHeader = req.headers.authorization;
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      logger.warn('Unauthorized cron request for full sync', { 
+        ip: req.ip, 
+        userAgent: req.headers['user-agent'] 
+      });
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Unauthorized' 
+      });
+    }
+    
+    const syncId = `vercel-full-sync-${Date.now()}`;
+    logger.info('Running Vercel cron FULL jobs sync (daily 7 AM process)', { syncId });
+    
+    const result = await jobsSync(); // Run full sync
+    
+    logger.info('Vercel cron full jobs sync completed successfully', { 
+      syncId, 
+      result: {
+        processedJobs: result.processedJobs || 0,
+        newJobs: result.newJobs || 0,
+        updatedJobs: result.updatedJobs || 0,
+        duration: result.duration || 'unknown'
+      }
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Full sync completed successfully',
+      syncId,
+      result
+    });
+    
+  } catch (error) {
+    const syncId = `vercel-full-sync-error-${Date.now()}`;
+    logger.error('Error in Vercel cron full jobs sync', { 
+      syncId, 
+      error: error.message, 
+      stack: error.stack 
+    });
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error during full sync',
+      syncId,
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/admin/test-cron-sync
+ * @desc    Test endpoint to manually trigger cron sync logic (for testing)
+ * @access  Private (Admin)
+ */
+router.post('/test-cron-sync', async (req, res) => {
+  try {
+    const syncType = req.body.type || 'incremental'; // 'incremental' or 'full'
+    
+    if (syncType === 'full') {
+      const syncId = `test-full-sync-${Date.now()}`;
+      logger.info('Running TEST full jobs sync', { syncId });
+      
+      const result = await jobsSync();
+      
+      logger.info('TEST full jobs sync completed successfully', { 
+        syncId, 
+        result: {
+          processedJobs: result.processedJobs || 0,
+          newJobs: result.newJobs || 0,
+          updatedJobs: result.updatedJobs || 0,
+          duration: result.duration || 'unknown'
+        }
+      });
+      
+      res.json({ 
+        success: true, 
+        message: 'Test full sync completed successfully',
+        syncId,
+        result
+      });
+      
+    } else {
+      const syncId = `test-incremental-sync-${Date.now()}`;
+      logger.info('Running TEST incremental jobs sync', { syncId });
+      
+      const result = await incrementalJobsSync();
+      
+      logger.info('TEST incremental jobs sync completed successfully', { 
+        syncId, 
+        result: {
+          processedJobs: result.processedJobs || 0,
+          newJobs: result.newJobs || 0,
+          updatedJobs: result.updatedJobs || 0,
+          duration: result.duration || 'unknown'
+        }
+      });
+      
+      res.json({ 
+        success: true, 
+        message: 'Test incremental sync completed successfully',
+        syncId,
+        result
+      });
+    }
+    
+  } catch (error) {
+    const syncId = `test-sync-error-${Date.now()}`;
+    logger.error('Error in TEST sync', { 
+      syncId, 
+      error: error.message, 
+      stack: error.stack 
+    });
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error during test sync',
+      syncId,
+      message: error.message
     });
   }
 });

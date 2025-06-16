@@ -10,6 +10,16 @@
       "use": "@vercel/static"
     }
   ],
+  "crons": [
+    {
+      "path": "/api/cron/incremental-sync",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/full-sync",
+      "schedule": "0 7 * * *"
+    }
+  ],
   "rewrites": [
     { "source": "/api/events", "destination": "src/index.js" },
     { "source": "/api/(.*)", "destination": "src/index.js" },

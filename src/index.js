@@ -17,6 +17,7 @@ import apiRoutes from './routes/api.js';
 import webflowAPI from './api/webflow.js';
 import mysolutionAPI from './api/mysolution.js';
 import syncStateStore from './utils/syncStateStore.js';
+import { initializeDeploymentInfo } from './utils/deploymentInfo.js';
 
 // Helper for __dirname in ES modules
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -105,7 +106,7 @@ app.get('/api/events', (req, res) => {
   res.flushHeaders();
 
   // Send initial message
-  res.write(`event: log\ndata: {"message": "Connected to event stream", "level": "info"}\n\n`);
+  res.write(`event: log\ndata: {'message': 'Connected to event stream', 'level': 'info'}\n\n`);
   
   // Create event listeners
   const logListener = (logData) => {
@@ -208,53 +209,66 @@ const fullSyncCronPattern = `0 7 * * *`; // Daily at 7 AM
 logger.info(`Setting up incremental job sync schedule: ${incrementalSyncCronPattern} (${config.sync.enableScheduledSync ? 'enabled' : 'disabled'})`);
 logger.info(`Setting up daily full job sync schedule: ${fullSyncCronPattern} (${config.sync.enableScheduledSync ? 'enabled' : 'disabled'})`);
 
-// Create the scheduler for incremental syncs
-const scheduledIncrementalJobsSync = cron.schedule(incrementalSyncCronPattern, async () => {
-  // Skip if exactly 7 AM as full sync will run at that time
-  const now = new Date();
-  if (now.getHours() === 7 && now.getMinutes() === 0) {
-    logger.info('Skipping incremental sync at 7 AM as full sync will run');
-    return;
-  }
-  
-  const syncId = `incremental-sync-${Date.now()}`;
-  logger.info('Running scheduled incremental jobs sync', { syncId });
-  
-  try {
-    await incrementalJobsSync();
-    logger.info('Incremental jobs sync completed successfully', { syncId });
-  } catch (error) {
-    logger.error('Error in scheduled incremental jobs sync', { syncId, error: error.message, stack: error.stack });
-  }
-}, {
-  scheduled: config.sync.enableScheduledSync // Only start if enabled in config
-});
+// NOTE: For Vercel deployment, cron jobs are handled by Vercel's cron system
+// These Node.js cron jobs only work in non-serverless environments
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.AZURE_FUNCTIONS_WORKER_RUNTIME;
 
-// Create the scheduler for full sync at 7 AM daily
-const scheduledFullJobsSync = cron.schedule(fullSyncCronPattern, async () => {
-  const syncId = `full-sync-${Date.now()}`;
-  logger.info('Running scheduled FULL jobs sync (daily 7 AM process)', { syncId });
-  
-  try {
-    await jobsSync(); // Run full sync
-    logger.info('Full jobs sync completed successfully', { syncId });
-  } catch (error) {
-    logger.error('Error in scheduled full jobs sync', { syncId, error: error.message, stack: error.stack });
+// Declare scheduler variables
+let scheduledIncrementalJobsSync = null;
+let scheduledFullJobsSync = null;
+
+if (isServerless) {
+  logger.info('Serverless environment detected - using platform cron jobs instead of Node.js cron');
+  logger.info('Vercel cron jobs configured: /api/cron/incremental-sync (every 5 min) and /api/cron/full-sync (daily 7 AM)');
+} else {
+  // Create the scheduler for incremental syncs (only for non-serverless)
+  scheduledIncrementalJobsSync = cron.schedule(incrementalSyncCronPattern, async () => {
+    // Skip if exactly 7 AM as full sync will run at that time
+    const now = new Date();
+    if (now.getHours() === 7 && now.getMinutes() === 0) {
+      logger.info('Skipping incremental sync at 7 AM as full sync will run');
+      return;
+    }
+    
+    const syncId = `incremental-sync-${Date.now()}`;
+    logger.info('Running scheduled incremental jobs sync', { syncId });
+    
+    try {
+      await incrementalJobsSync();
+      logger.info('Incremental jobs sync completed successfully', { syncId });
+    } catch (error) {
+      logger.error('Error in scheduled incremental jobs sync', { syncId, error: error.message, stack: error.stack });
+    }
+  }, {
+    scheduled: config.sync.enableScheduledSync // Only start if enabled in config
+  });
+
+  // Create the scheduler for full sync at 7 AM daily (only for non-serverless)
+  scheduledFullJobsSync = cron.schedule(fullSyncCronPattern, async () => {
+    const syncId = `full-sync-${Date.now()}`;
+    logger.info('Running scheduled FULL jobs sync (daily 7 AM process)', { syncId });
+    
+    try {
+      await jobsSync(); // Run full sync
+      logger.info('Full jobs sync completed successfully', { syncId });
+    } catch (error) {
+      logger.error('Error in scheduled full jobs sync', { syncId, error: error.message, stack: error.stack });
+    }
+  }, {
+    scheduled: config.sync.enableScheduledSync // Only start if enabled in config
+  });
+
+  // Log whether scheduled sync is enabled
+  if (config.sync.enableScheduledSync) {
+    logger.info(`Scheduled sync is ENABLED - incremental sync every ${syncIntervalMinutes} minute(s) with a full sync daily at 7 AM`);
+  } else {
+    logger.info('Scheduled sync is DISABLED - use the dashboard to trigger syncs manually');
   }
-}, {
-  scheduled: config.sync.enableScheduledSync // Only start if enabled in config
-});
+}
 
 // Make schedulers globally accessible so API endpoints can control them
 global.scheduledJobsSync = scheduledIncrementalJobsSync; // Keep existing API references working
 global.scheduledFullJobsSync = scheduledFullJobsSync;
-
-// Log whether scheduled sync is enabled
-if (config.sync.enableScheduledSync) {
-  logger.info(`Scheduled sync is ENABLED - incremental sync every ${syncIntervalMinutes} minute(s) with a full sync daily at 7 AM`);
-} else {
-  logger.info('Scheduled sync is DISABLED - use the dashboard to trigger syncs manually');
-}
 
 // Add an endpoint to reset sync state and trigger a full sync
 app.post('/api/admin/reset-sync', (req, res) => {
@@ -327,6 +341,14 @@ async function runSmartSync() {
     return await incrementalJobsSync();
   }
 }
+
+// Initialize deployment info at startup
+console.log('Initializing deployment information...');
+initializeDeploymentInfo().then((info) => {
+  console.log('✅ Deployment info initialized:', info.source);
+}).catch((error) => {
+  console.warn('⚠️ Deployment info initialization failed:', error.message);
+});
 
 // Start server
 app.listen(PORT, () => {

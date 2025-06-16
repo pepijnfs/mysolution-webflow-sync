@@ -936,11 +936,13 @@
         
         // Simple uptime counter based on deployment time
         let deploymentTime = null;
+        let deploymentUnixTimestamp = null;
         let syncIntervalMinutes = 5; // Updated to 5 minutes
         
         // Fetch deployment time from server
         async function fetchDeploymentTime() {
             try {
+                console.log('Fetching deployment time from server...');
                 const response = await fetch('/api/admin/deployment/info', {
                     headers: {
                         'x-api-key': adminApiKey
@@ -949,35 +951,72 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    deploymentTime = new Date(data.data.deploymentTime);
-                    console.log('Deployment time fetched:', deploymentTime);
-                    updateUptime(); // Initial update
+                    console.log('Deployment info received:', data.data);
+                    
+                    if (data.data && data.data.deploymentTime) {
+                        deploymentTime = new Date(data.data.deploymentTime);
+                        deploymentUnixTimestamp = data.data.unixTimestamp;
+                        
+                        console.log('Deployment time set to:', deploymentTime);
+                        console.log('Source:', data.data.source);
+                        
+                        if (data.data.commitHash) {
+                            console.log('Commit hash:', data.data.commitHash);
+                        }
+                        
+                        updateUptime(); // Initial update
+                    } else {
+                        throw new Error('Invalid deployment data structure');
+                    }
                 } else {
-                    console.warn('Could not fetch deployment time, using fallback');
-                    deploymentTime = new Date(Date.now() - 60000); // Fallback: 1 minute ago
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
             } catch (error) {
                 console.error('Error fetching deployment time:', error);
-                deploymentTime = new Date(Date.now() - 60000); // Fallback: 1 minute ago
+                addLogEntry(`Could not fetch deployment time: ${error.message}. Using fallback.`, 'warning');
+                
+                // Fallback: Use a reasonable default (5 minutes ago)
+                deploymentTime = new Date(Date.now() - 5 * 60 * 1000);
+                deploymentUnixTimestamp = Math.floor(deploymentTime.getTime() / 1000);
+                console.log('Using fallback deployment time:', deploymentTime);
+                
+                updateUptime(); // Initial update with fallback
             }
         }
         
         // Update uptime display based on deployment time
         function updateUptime() {
-            if (!deploymentTime) return;
+            if (!deploymentTime) {
+                document.getElementById('uptime').textContent = '--:--:--';
+                return;
+            }
             
-            const now = new Date();
-            const uptimeMs = now - deploymentTime;
-            const hours = Math.floor(uptimeMs / (1000 * 60 * 60));
-            const minutes = Math.floor((uptimeMs % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((uptimeMs % (1000 * 60)) / 1000);
-            
-            const formattedUptime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            document.getElementById('uptime').textContent = formattedUptime;
+            try {
+                const now = new Date();
+                const uptimeMs = now - deploymentTime;
+                
+                // Ensure we don't show negative uptime
+                if (uptimeMs < 0) {
+                    document.getElementById('uptime').textContent = '00:00:00';
+                    return;
+                }
+                
+                const hours = Math.floor(uptimeMs / (1000 * 60 * 60));
+                const minutes = Math.floor((uptimeMs % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((uptimeMs % (1000 * 60)) / 1000);
+                
+                const formattedUptime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                document.getElementById('uptime').textContent = formattedUptime;
+                
+                // Debug logging every 30 seconds
+                if (seconds === 0 || seconds === 30) {
+                    console.log(`Uptime update: ${formattedUptime} (${Math.floor(uptimeMs / 1000)}s since ${deploymentTime.toISOString()})`);
+                }
+            } catch (error) {
+                console.error('Error updating uptime:', error);
+                document.getElementById('uptime').textContent = 'Error';
+            }
         }
-        
-        // Fetch deployment time on page load
-        fetchDeploymentTime();
         
         // Fetch sync interval from server for next sync calculation
         async function fetchSyncInterval() {
