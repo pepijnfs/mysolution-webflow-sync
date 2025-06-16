@@ -226,6 +226,72 @@ function updateLastSyncTime() {
 }
 
 /**
+ * Update the sync state after a successful full sync
+ * @returns {Object} Updated sync state
+ */
+function updateLastFullSyncTime() {
+  const state = loadSyncState();
+  const now = new Date();
+  const nowISO = now.toISOString();
+  
+  console.log(`Updating full sync timestamp to ${nowISO}`);
+  
+  const updatedState = {
+    ...state,
+    lastSync: nowISO,
+    lastFullSync: nowISO,
+    syncCount: (state.syncCount || 0) + 1,
+    lastError: null,
+    jobModificationDates: { ...(state.jobModificationDates || {}) }
+  };
+  
+  saveSyncState(updatedState);
+  return updatedState;
+}
+
+/**
+ * Update the sync state after a successful incremental sync
+ * @returns {Object} Updated sync state
+ */
+function updateLastIncrementalSyncTime() {
+  const state = loadSyncState();
+  const now = new Date();
+  const nowISO = now.toISOString();
+  
+  console.log(`Updating incremental sync timestamp to ${nowISO}`);
+  
+  const updatedState = {
+    ...state,
+    lastSync: nowISO,
+    lastIncrementalSync: nowISO,
+    syncCount: (state.syncCount || 0) + 1,
+    lastError: null,
+    jobModificationDates: { ...(state.jobModificationDates || {}) }
+  };
+  
+  saveSyncState(updatedState);
+  return updatedState;
+}
+
+/**
+ * Get the last full sync time
+ * @returns {string|null} ISO timestamp of last full sync, or null if never synced
+ */
+function getLastFullSyncTime() {
+  const state = loadSyncState();
+  return state.lastFullSync || null;
+}
+
+/**
+ * Get the last incremental sync time
+ * @returns {string|null} ISO timestamp of last incremental sync, or null if never synced
+ */
+function getLastIncrementalSyncTime() {
+  const state = loadSyncState();
+  return state.lastIncrementalSync || state.lastSync || null;
+}
+
+/**
  * Record an error in the sync state
  * @param {Error} error - Error object
  * @returns {Object} Updated sync state
@@ -450,6 +516,10 @@ function getSyncState() {
 export default {
   getLastSyncTime,
   updateLastSyncTime,
+  updateLastFullSyncTime,
+  updateLastIncrementalSyncTime,
+  getLastFullSyncTime,
+  getLastIncrementalSyncTime,
   recordSyncError,
   resetSyncState,
   jobNeedsUpdate,

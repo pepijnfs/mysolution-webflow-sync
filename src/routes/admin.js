@@ -398,9 +398,16 @@ router.get('/sync/status', (req, res) => {
     // Get sync state from store
     const syncState = syncStateStore.getSyncState();
     
+    // Get separate sync times from localStorage-like persistent storage
+    // We'll check if sync state has separate tracking, otherwise use general lastSync
+    const lastFullSyncTime = syncState.lastFullSync || null;
+    const lastIncrementalSyncTime = syncState.lastIncrementalSync || syncState.lastSync || null;
+    
     // Cache the results
     router.cachedSyncStatus = {
       lastSync: syncState.lastSync,
+      lastFullSync: lastFullSyncTime,
+      lastIncrementalSync: lastIncrementalSyncTime,
       syncCount: syncState.syncCount,
       lastError: syncState.lastError ? {
         message: syncState.lastError.message,
@@ -526,6 +533,54 @@ router.post('/sync/schedule/disable', (req, res) => {
       fullSyncCronPattern: fullSyncCronPattern
     }
   });
+});
+
+/**
+ * @route   GET /api/admin/deployment/info
+ * @desc    Get deployment information including commit time
+ * @access  Private (Admin)
+ */
+router.get('/deployment/info', (req, res) => {
+  try {
+    const { exec } = require('child_process');
+    
+    // Get git commit info
+    exec('git log -1 --format="%H|%ci"', (error, stdout, stderr) => {
+      if (error) {
+        console.warn('Could not get git info:', error.message);
+        // Fallback to process start time if git is not available
+        res.json({
+          success: true,
+          data: {
+            deploymentTime: new Date(Date.now() - process.uptime() * 1000).toISOString(),
+            source: 'process_start'
+          }
+        });
+        return;
+      }
+      
+      const [commitHash, commitTime] = stdout.trim().split('|');
+      
+      res.json({
+        success: true,
+        data: {
+          deploymentTime: new Date(commitTime).toISOString(),
+          commitHash: commitHash.substring(0, 8), // Short hash
+          source: 'git_commit'
+        }
+      });
+    });
+  } catch (error) {
+    logger.error('Error getting deployment info:', error);
+    // Fallback to process start time
+    res.json({
+      success: true,
+      data: {
+        deploymentTime: new Date(Date.now() - process.uptime() * 1000).toISOString(),
+        source: 'fallback'
+      }
+    });
+  }
 });
 
 export default router; 

@@ -444,7 +444,11 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
     });
     
     // Update last sync time
-    syncStateStore.updateLastSyncTime();
+    if (incrementalOnly) {
+      syncStateStore.updateLastIncrementalSyncTime();
+    } else {
+      syncStateStore.updateLastFullSyncTime();
+    }
     
     // Create sync results for emitting
     const syncResults = {

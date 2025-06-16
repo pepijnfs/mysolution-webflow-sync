@@ -706,7 +706,7 @@
             updateServiceHealth();
             updatePublishingStatus();
             loadJobCounts();
-            fetchSyncInterval(); // New function to fetch sync interval
+            fetchSyncInterval(); // Fetch sync interval for next sync calculation
             
             // Connect to real-time event stream
             connectToEventStream();
@@ -934,11 +934,52 @@
             }
         }
         
-        // Simple uptime counter
-        const startTime = Date.now();
-        let syncIntervalMinutes = 15; // Default to 15 minutes if server config can't be fetched
+        // Simple uptime counter based on deployment time
+        let deploymentTime = null;
+        let syncIntervalMinutes = 5; // Updated to 5 minutes
         
-        // Fetch sync interval from server
+        // Fetch deployment time from server
+        async function fetchDeploymentTime() {
+            try {
+                const response = await fetch('/api/admin/deployment/info', {
+                    headers: {
+                        'x-api-key': adminApiKey
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    deploymentTime = new Date(data.data.deploymentTime);
+                    console.log('Deployment time fetched:', deploymentTime);
+                    updateUptime(); // Initial update
+                } else {
+                    console.warn('Could not fetch deployment time, using fallback');
+                    deploymentTime = new Date(Date.now() - 60000); // Fallback: 1 minute ago
+                }
+            } catch (error) {
+                console.error('Error fetching deployment time:', error);
+                deploymentTime = new Date(Date.now() - 60000); // Fallback: 1 minute ago
+            }
+        }
+        
+        // Update uptime display based on deployment time
+        function updateUptime() {
+            if (!deploymentTime) return;
+            
+            const now = new Date();
+            const uptimeMs = now - deploymentTime;
+            const hours = Math.floor(uptimeMs / (1000 * 60 * 60));
+            const minutes = Math.floor((uptimeMs % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((uptimeMs % (1000 * 60)) / 1000);
+            
+            const formattedUptime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('uptime').textContent = formattedUptime;
+        }
+        
+        // Fetch deployment time on page load
+        fetchDeploymentTime();
+        
+        // Fetch sync interval from server for next sync calculation
         async function fetchSyncInterval() {
             try {
                 const response = await fetch('/api/admin/sync/schedule/status', {
@@ -951,32 +992,12 @@
                     const data = await response.json();
                     if (data.data && data.data.interval) {
                         syncIntervalMinutes = data.data.interval;
-                        addLogEntry(`Sync interval set to ${syncIntervalMinutes} minutes from server configuration`, 'info');
-                        // Update next sync time with the new interval
-                        updateNextSyncTime();
-                    } else {
-                        addLogEntry(`Using default sync interval of ${syncIntervalMinutes} minutes`, 'info');
+                        console.log(`Sync interval set to ${syncIntervalMinutes} minutes from server configuration`);
                     }
-                } else {
-                    addLogEntry(`Kon sync interval niet ophalen, gebruik standaard van ${syncIntervalMinutes} minutes`, 'warning');
                 }
             } catch (error) {
                 console.error('Error fetching sync interval:', error);
-                addLogEntry(`Error fetching sync interval: ${error.message}. Using default of ${syncIntervalMinutes} minutes`, 'error');
-            } finally {
-                // Always update next sync time, regardless of whether we could fetch the interval
-                updateNextSyncTime();
             }
-        }
-        
-        function updateUptime() {
-            const uptime = Math.floor((Date.now() - startTime) / 1000);
-            const hours = Math.floor(uptime / 3600);
-            const minutes = Math.floor((uptime % 3600) / 60);
-            const seconds = uptime % 60;
-            
-            document.getElementById('uptime').textContent = 
-                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
         
         // Update publishing status and toggle
