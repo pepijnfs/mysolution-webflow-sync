@@ -702,6 +702,7 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             // Start updating UI components
+            fetchDeploymentTime(); // Fetch deployment time for uptime calculation
             updateUptime();
             updateServiceHealth();
             updatePublishingStatus();
@@ -1110,16 +1111,32 @@
                         if (data.data.lastFullSync) {
                             document.getElementById('last-full-sync').textContent = 
                                 new Date(data.data.lastFullSync).toLocaleString();
+                            localStorage.setItem('lastFullSyncTime', new Date(data.data.lastFullSync).getTime());
                         } else {
-                            document.getElementById('last-full-sync').textContent = 'Never';
+                            // Check localStorage for fallback
+                            const cachedFullSync = localStorage.getItem('lastFullSyncTime');
+                            if (cachedFullSync) {
+                                document.getElementById('last-full-sync').textContent = 
+                                    new Date(parseInt(cachedFullSync)).toLocaleString();
+                            } else {
+                                document.getElementById('last-full-sync').textContent = 'Nog niet uitgevoerd';
+                            }
                         }
                         
                         // Update incremental sync time
                         if (data.data.lastIncrementalSync) {
                             document.getElementById('last-incremental-sync').textContent = 
                                 new Date(data.data.lastIncrementalSync).toLocaleString();
+                            localStorage.setItem('lastIncrementalSyncTime', new Date(data.data.lastIncrementalSync).getTime());
                         } else {
-                            document.getElementById('last-incremental-sync').textContent = 'Never';
+                            // Check localStorage for fallback
+                            const cachedIncrementalSync = localStorage.getItem('lastIncrementalSyncTime');
+                            if (cachedIncrementalSync) {
+                                document.getElementById('last-incremental-sync').textContent = 
+                                    new Date(parseInt(cachedIncrementalSync)).toLocaleString();
+                            } else {
+                                document.getElementById('last-incremental-sync').textContent = 'Nog niet uitgevoerd';
+                            }
                         }
                         
                         // Update last sync metrics if available

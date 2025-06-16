@@ -30,6 +30,8 @@ if (!isServerless) {
  */
 const DEFAULT_SYNC_STATE = {
   lastSync: null, // ISO string of last successful sync
+  lastFullSync: null, // ISO string of last full sync
+  lastIncrementalSync: null, // ISO string of last incremental sync
   syncCount: 0,   // Number of successful syncs
   lastError: null, // Last error encountered during sync
   jobModificationDates: {} // Object of job IDs mapped to their last modification dates
