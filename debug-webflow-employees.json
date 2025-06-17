@@ -1,0 +1,258 @@
+[
+  {
+    "id": "67b71aa085081564e414df0a",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-02-20T12:05:52.632Z",
+    "lastUpdated": "2025-02-20T12:05:52.632Z",
+    "createdOn": "2025-02-20T12:05:52.632Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "medewerker-e-mail": "kim@baseselect.nl",
+      "medewerker-ervaring": null,
+      "medewerker-functie": "Recruitment Consultant",
+      "medewerker-phone": "0682012276",
+      "name": "Kimberly Cheung",
+      "slug": "kimberly-cheung"
+    },
+    "name": "Kimberly Cheung",
+    "_id": "67b71aa085081564e414df0a"
+  },
+  {
+    "id": "678ffeb5c9091d64b8dca8f6",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-02-28T10:49:02.119Z",
+    "lastUpdated": "2025-02-28T10:49:02.119Z",
+    "createdOn": "2025-01-21T20:08:21.347Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "medewerker-e-mail": "joris@baseselect.nl",
+      "medewerker-functie": "Recruitment Consultant",
+      "name": "Joris Kramer",
+      "slug": "joris-kramer",
+      "medewerker-phone": "06-83204573",
+      "medewerker-image": {
+        "fileId": "67c193f211f594e09f0fd50b",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/67c193f211f594e09f0fd50b_Baseselect-158-square-large.jpg",
+        "alt": null
+      }
+    },
+    "name": "Joris Kramer",
+    "_id": "678ffeb5c9091d64b8dca8f6"
+  },
+  {
+    "id": "67406709f1d5c9b1b66667f1",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-02-28T10:50:32.168Z",
+    "lastUpdated": "2025-02-28T10:48:46.707Z",
+    "createdOn": "2024-11-22T11:12:09.286Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "medewerker-e-mail": "juliani@baseselect.nl",
+      "medewerker-functie": "Candidate Consultant",
+      "medewerker-phone": "+31 (0) 683313147 ",
+      "name": "Juliani Cordua",
+      "medewerker-image": {
+        "fileId": "67c1939252caae6b015cd065",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/67c1939252caae6b015cd065_Juliani%20website.jpg",
+        "alt": null
+      },
+      "slug": "juliani-cordua"
+    },
+    "name": "Juliani Cordua",
+    "_id": "67406709f1d5c9b1b66667f1"
+  },
+  {
+    "id": "66e3fd7e5ebe72cd6c61718c",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-02-28T10:47:18.217Z",
+    "lastUpdated": "2025-02-28T10:47:18.217Z",
+    "createdOn": "2024-09-13T08:53:18.127Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "medewerker-e-mail": "calvin@baseselect.nl",
+      "medewerker-functie": "Recruitment Consultant",
+      "medewerker-phone": "+31 6 53864160",
+      "name": "Calvin Arendse",
+      "medewerker-image": {
+        "fileId": "67c19433778cd06588201e76",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/67c19433778cd06588201e76_Baseselect-120-square-large.jpg",
+        "alt": null
+      },
+      "slug": "calvin-arendse"
+    },
+    "name": "Calvin Arendse",
+    "_id": "66e3fd7e5ebe72cd6c61718c"
+  },
+  {
+    "id": "662a94c65ae015bd3a057f8f",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-02-01T06:24:15.271Z",
+    "lastUpdated": "2025-02-01T06:24:15.271Z",
+    "createdOn": "2024-04-25T17:37:10.107Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "medewerker-e-mail": "naldo@baseselect.nl",
+      "medewerker-functie": "Principal Recruitment Consultant",
+      "medewerker-phone": "+31 6 19004039",
+      "name": "Naldo Bhagwandin",
+      "slug": "naldo-bhagwandin",
+      "medewerker-image": {
+        "fileId": "662a975c98c598eff39358d0",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/662a975c98c598eff39358d0_Naldo%20Bhagwandin.webp",
+        "alt": null
+      },
+      "medewerker-ervaring": "<p id=\"\">Welkom bij Base Select! Mijn naam is Naldo Bhagwandin en ik help bij het vinden van de perfecte match binnen kwaliteitsafdelingen in de voedingsindustrie. Met mijn ervaring als Recruitment Consultant zorg ik voor de juiste professionals, of het nu gaat om interim-rollen of vaste functies. Mijn persoonlijke aanpak en diepgaande kennis van de sector zorgen ervoor dat elke kandidaat past bij zowel de functie als de organisatiecultuur.</p>"
+    },
+    "name": "Naldo Bhagwandin",
+    "_id": "662a94c65ae015bd3a057f8f"
+  },
+  {
+    "id": "662a94c54de5cf5b9efc9083",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-01-20T08:00:31.294Z",
+    "lastUpdated": "2025-01-20T07:58:13.785Z",
+    "createdOn": "2024-04-25T17:37:09.274Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "medewerker-e-mail": "bart@baseselect.nl",
+      "medewerker-functie": "Lead Consultant",
+      "medewerker-phone": "+31 6 45040065",
+      "name": "Bart Schipper",
+      "slug": "bart-schipper",
+      "medewerker-image": {
+        "fileId": "662a972b7cca349012d6fa54",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/662a972b7cca349012d6fa54_Bart%20Schipper.webp",
+        "alt": null
+      },
+      "medewerker-ervaring": "<p id=\"\">Als consultant bij Base Select voel ik me echt onderdeel van een betrokken en ambitieus team. De sfeer is informeel, maar er is volop ruimte voor persoonlijke groei en professionele ontwikkeling. Door de focus op nichemarkten in de Life Sciences werk ik dagelijks aan uitdagende opdrachten met impact. Het mooiste? Het gevoel dat we samen écht het verschil maken voor klanten én kandidaten.</p>"
+    },
+    "name": "Bart Schipper",
+    "_id": "662a94c54de5cf5b9efc9083"
+  },
+  {
+    "id": "662a94c4a9954931e9e0d86d",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-02-01T06:45:06.646Z",
+    "lastUpdated": "2025-02-01T06:45:06.646Z",
+    "createdOn": "2024-04-25T17:37:08.398Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "medewerker-e-mail": "semir@baseselect.nl",
+      "medewerker-functie": "Lead Consultant",
+      "medewerker-phone": "+31 6 16583613",
+      "name": "Semir Gash",
+      "slug": "semir-gash",
+      "medewerker-image": {
+        "fileId": "662a9762a32f18233a8e4a91",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/662a9762a32f18233a8e4a91_Semir%20Gash.webp",
+        "alt": null
+      },
+      "medewerker-ervaring": "<p id=\"\">Base is een betrouwbare partner in life sciences. De groei van onze consultants staat centraal, zodat zij hun potentieel benutten en wij topkwaliteit leveren. Met jouw ambitie bieden wij alle tools om succesvol te worden en het beste uit jezelf te halen. Samen groeien we, ontwikkelen we en maken we impact – voor onze klanten én voor jou!</p>"
+    },
+    "name": "Semir Gash",
+    "_id": "662a94c4a9954931e9e0d86d"
+  },
+  {
+    "id": "662a94c4b7d9e42c315075a5",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-04-08T08:42:01.647Z",
+    "lastUpdated": "2025-04-08T08:42:01.647Z",
+    "createdOn": "2024-04-25T17:37:08.151Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "medewerker-e-mail": "celina@baseselect.nl",
+      "medewerker-functie": "Recruitment Consultant",
+      "medewerker-phone": "+31 6 53538527",
+      "name": "Celina Habieb",
+      "slug": "celina-habieb",
+      "medewerker-image": {
+        "fileId": "662a9732b3e5798644b48d68",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/662a9732b3e5798644b48d68_Celina%20Habieb.webp",
+        "alt": null
+      },
+      "medewerker-ervaring": "<p id=\"\">Mijn commerciële ervaring was een mooie basis, maar bij Base heb ik als Recruitment Consultant veel meer geleerd en mezelf verder ontwikkeld. Door me te specialiseren in een niche, spreek ik nu de taal van de professionals die ik bemiddel en kan ik hen van echt waardevol advies voorzien. Het contact met diverse bedrijven en kandidaten geeft me elke dag weer energie.</p>"
+    },
+    "name": "Celina Habieb",
+    "_id": "662a94c4b7d9e42c315075a5"
+  },
+  {
+    "id": "662a94c4f3ab2ed21d1fdd10",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-05-14T14:07:23.514Z",
+    "lastUpdated": "2025-05-14T14:06:10.408Z",
+    "createdOn": "2024-04-25T17:37:08.126Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "medewerker-e-mail": "dominique@baseselect.nl",
+      "medewerker-functie": "Principal Recruitment Consultant",
+      "medewerker-phone": "+31 6 12340334",
+      "name": "Dominique Huesken",
+      "slug": "dominique-huesken",
+      "medewerker-image": {
+        "fileId": "662a9740164270ed4465139c",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/662a9740164270ed4465139c_Dominique%20Huesken.webp",
+        "alt": null
+      },
+      "medewerker-ervaring": "<p id=\"\">Afgelopen 4+ jaar houd ik mezelf bezig met het uitbreiden van mijn netwerk op gebied van opdrachtgevers in de Life Science industrie. Hierbinnen ben ik gespecialiseerd in het bemiddelen van Health, Safety en Environment Professionals. Elke dag kijk ik naar nieuwe mogelijkheden om de mooiste kansen te creëren voor de specialisten in mijn netwerk. Zelf krijg ik energie van de diversiteit in opdrachtgevers en specialisten waar ik mee mag samenwerken. Of het nu gaat om het vinden van je droom baan of een unieke opdracht voel je vrij om contact op te nemen.</p>"
+    },
+    "name": "Dominique Huesken",
+    "_id": "662a94c4f3ab2ed21d1fdd10"
+  },
+  {
+    "id": "662a94c4d4ae07f043128c73",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-06-11T08:02:14.789Z",
+    "lastUpdated": "2025-06-11T08:02:14.789Z",
+    "createdOn": "2024-04-25T17:37:08.058Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "medewerker-e-mail": "kerim@baseselect.nl",
+      "medewerker-functie": "Senior Recruitment Consultant",
+      "medewerker-phone": "+31 6 10090736",
+      "name": "Kerim Likic",
+      "slug": "kerim-likic",
+      "medewerker-image": {
+        "fileId": "662a9746a48e17c8a02e29c6",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/662a9746a48e17c8a02e29c6_Kerim%20Likic.webp",
+        "alt": null
+      },
+      "medewerker-ervaring": "<p id=\"\">Bij Base Select ben ik verantwoordelijk voor het bemiddelen van kwaliteitsprofessionals in de farmaceutische en biotechnische industrie. Dit varieert van officer- tot directeursniveau, voor zowel interim posities als vaste aanstellingen. Ben je op zoek naar een nieuwe uitdaging, of wil je meer inzicht krijgen in de huidige arbeidsmarkt? Neem dan gerust contact op!</p>"
+    },
+    "name": "Kerim Likic",
+    "_id": "662a94c4d4ae07f043128c73"
+  },
+  {
+    "id": "662a94c4b4812f5b92947dbc",
+    "cmsLocaleId": "65f935a2e6b9d7f69afed198",
+    "lastPublished": "2025-04-08T09:05:42.923Z",
+    "lastUpdated": "2025-04-08T09:05:42.923Z",
+    "createdOn": "2024-04-25T17:37:08.053Z",
+    "isArchived": false,
+    "isDraft": false,
+    "fieldData": {
+      "medewerker-e-mail": "damien@baseselect.nl",
+      "medewerker-functie": "Principal Recruitment Consultant",
+      "medewerker-phone": "+31 6 19337534",
+      "name": "Damien Heinstman",
+      "slug": "damien-heinstman",
+      "medewerker-image": {
+        "fileId": "662a973925a0a4a4038b17f6",
+        "url": "https://cdn.prod.website-files.com/65c0c255f5c3943a37f6dd8d/662a973925a0a4a4038b17f6_Damien%20Heinstman.webp",
+        "alt": null
+      },
+      "medewerker-ervaring": "<p id=\"\">Bij Base Select verbind ik QC- en Lab-specialisten, van analisten tot directieniveau, met organisaties waar ze tot hun recht komen. Wat mijn werk zo leuk maakt, is het persoonlijke aspect: mensen begrijpen, hun drijfveren en ambities. Ik krijg energie van duurzame relaties bouwen en echt een verschil maken voor kandidaten en opdrachtgevers.</p>"
+    },
+    "name": "Damien Heinstman",
+    "_id": "662a94c4b4812f5b92947dbc"
+  }
+]

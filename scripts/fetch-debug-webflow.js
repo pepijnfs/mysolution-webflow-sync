@@ -64,7 +64,7 @@ async function fetchDebugWebflowJob(jobId) {
 }
 
 // Get job ID from command line arguments
-const jobId = process.argv[2] || '6850125a0f184e95b5054323';
+const jobId = process.argv[2] || '6836f3df52bd9c85fbc3a3c1';
 
 // Show usage if no arguments provided and using default
 if (process.argv.length <= 2) {

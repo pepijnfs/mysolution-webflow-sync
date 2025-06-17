@@ -11,6 +11,7 @@ class WebflowAPI {
     this.jobsCollectionId = config.webflow.jobsCollectionId;
     this.candidatesCollectionId = config.webflow.candidatesCollectionId;
     this.sectorsCollectionId = config.webflow.sectorsCollectionId;
+    this.employeesCollectionId = config.webflow.employeesCollectionId;
     this.timeout = config.webflow.timeout;
     this.rateLimit = config.webflow.rateLimit;
     this.customDomains = [];
@@ -1401,7 +1402,7 @@ class WebflowAPI {
       
       // Direct aliases for exact naming mismatches
       const exactAliases = {
-        "Food & FCMG": "Food & FMCG"
+        'Food & FCMG': 'Food & FMCG'
       };
       
       // Check if we have a direct alias match
@@ -1637,6 +1638,323 @@ class WebflowAPI {
       return null;
     } catch (error) {
       logger.error(`Error finding sector by name "${sectorName}":`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get the employees collection ID
+   * @returns {Promise<string>} Collection ID of the employees collection
+   */
+  async getEmployeesCollection() {
+    try {
+      // Use the configured employees collection ID if available
+      if (this.employeesCollectionId) {
+        logger.info(`Using configured employees collection ID: ${this.employeesCollectionId}`);
+        try {
+          // Verify that the collection exists
+          const collection = await this.getCollection(this.employeesCollectionId);
+          logger.info(`Verified employees collection: ${collection.name} (${collection.id})`);
+          return this.employeesCollectionId;
+        } catch (error) {
+          logger.error(`Invalid employees collection ID: ${this.employeesCollectionId}`, { 
+            error: error.message,
+            stack: error.stack
+          });
+          // Continue to try finding the collection
+        }
+      }
+
+      // Get all collections
+      logger.debug('Fetching all collections to find employees collection');
+      const collectionsResponse = await this.getCollections();
+      const collections = collectionsResponse.collections || collectionsResponse;
+      logger.debug(`Found ${collections.length} collections`);
+      
+      // Find the employees collection (likely named "Medewerkers")
+      const employeesCollection = collections.find(collection => 
+        (collection.name && collection.name.toLowerCase().includes('medewerker')) || 
+        (collection.slug && collection.slug.toLowerCase().includes('medewerker')) ||
+        (collection.name && collection.name.toLowerCase().includes('employee')) || 
+        (collection.slug && collection.slug.toLowerCase().includes('employee'))
+      );
+      
+      if (!employeesCollection) {
+        logger.warn('Could not find employees collection. Contactpersoon references will not be set.');
+        return null;
+      }
+      
+      // Store for future use
+      this.employeesCollectionId = employeesCollection.id;
+      logger.info(`Found employees collection: ${employeesCollection.name} (${employeesCollection.id})`);
+      
+      return employeesCollection.id;
+    } catch (error) {
+      logger.error('Error finding employees collection:', { 
+        error: error.message,
+        stack: error.stack
+      });
+      return null;
+    }
+  }
+  
+  /**
+   * Get all employees from the employees collection
+   * @returns {Promise<Array>} List of employees
+   */
+  async getAllEmployees() {
+    try {
+      // Force refresh if employees aren't cached or were cached more than 1 hour ago
+      const now = Date.now();
+      const needsRefresh = !this.employees || 
+                          !this.lastEmployeesFetch || 
+                          (now - this.lastEmployeesFetch) > 3600000; // 1 hour
+      
+      if (!needsRefresh && this.employees) {
+        logger.debug(`Using cached employees (${this.employees.length} items)`);
+        return this.employees;
+      }
+      
+      // Get employees collection ID
+      logger.debug('Getting employees collection ID');
+      const employeesCollectionId = await this.getEmployeesCollection();
+      
+      if (!employeesCollectionId) {
+        logger.warn('No employees collection ID found, unable to get employees');
+        return [];
+      }
+      
+      // Get all employees
+      logger.debug(`Fetching items from employees collection: ${employeesCollectionId}`);
+      const rawEmployees = await this.getAllItems(employeesCollectionId);
+      
+      // Process employees to extract name from fieldData if needed
+      const employees = rawEmployees.map(employee => {
+        // Handle case where name is stored in fieldData
+        if (!employee.name && employee.fieldData && employee.fieldData.name) {
+          return {
+            ...employee,
+            name: employee.fieldData.name,
+            // Preserve the original _id as well
+            _id: employee._id || employee.id
+          };
+        }
+        return employee;
+      });
+      
+      // Cache employees for future use
+      this.employees = employees;
+      this.lastEmployeesFetch = now;
+      
+      logger.info(`Fetched ${employees.length} employees from collection ${employeesCollectionId}`);
+      
+      // Log all employee names and IDs at debug level
+      if (employees.length > 0) {
+        logger.debug('Available employees:');
+        employees.forEach(employee => {
+          const name = employee.name || (employee.fieldData ? employee.fieldData.name : 'unnamed');
+          const id = employee._id || employee.id || 'no-id';
+          logger.debug(`- ${name} (${id})`);
+        });
+      } else {
+        logger.warn('No employees found in collection');
+      }
+      
+      return employees;
+    } catch (error) {
+      logger.error('Error fetching employees:', { 
+        error: error.message,
+        stack: error.stack
+      });
+      return [];
+    }
+  }
+  
+  /**
+   * Find an employee by name with fuzzy matching
+   * Uses multiple matching techniques to find the closest match
+   * @param {string} employeeName - The employee name to find
+   * @returns {Promise<Object|null>} - The found employee or null
+   */
+  async findEmployeeByName(employeeName) {
+    try {
+      // Safety check
+      if (!employeeName) {
+        logger.warn('Cannot find employee without a name');
+        return null;
+      }
+
+      // Log the input employee name for debugging
+      logger.debug(`Finding employee by name: "${employeeName}"`);
+      
+      const allEmployees = await this.getAllEmployees();
+      
+      if (!allEmployees || allEmployees.length === 0) {
+        logger.warn('No employees found in Webflow');
+        return null;
+      }
+
+      // Helper function to get the name of an employee, checking various properties
+      const getEmployeeName = (employee) => {
+        if (!employee) return null;
+        
+        if (employee.name) return employee.name;
+        if (employee.fieldData && employee.fieldData.name) return employee.fieldData.name;
+        
+        return null;
+      };
+      
+      // Helper function to get the ID of an employee
+      const getEmployeeId = (employee) => {
+        if (!employee) return null;
+        
+        return employee._id || employee.id || null;
+      };
+      
+      // Log available employees for debugging
+      logger.debug('Available employees:', allEmployees.map(e => {
+        const name = getEmployeeName(e);
+        const id = getEmployeeId(e);
+        
+        if (!name) {
+          logger.warn('Invalid employee object:', e);
+          return 'INVALID EMPLOYEE';
+        }
+        
+        return `"${name}" (${id})`;
+      }));
+      
+      // Try direct name match first (case insensitive)
+      for (const employee of allEmployees) {
+        const employeeName1 = getEmployeeName(employee);
+        if (!employeeName1) continue;
+        
+        // Check for exact match (case insensitive)
+        if (employeeName1.toLowerCase() === employeeName.toLowerCase()) {
+          logger.debug(`Found exact employee match for "${employeeName}": ${employeeName1} (${getEmployeeId(employee)})`);
+          return {
+            id: getEmployeeId(employee),
+            name: employeeName1
+          };
+        }
+      }
+      
+      // Normalize the input employee name
+      const normalizeName = (name) => {
+        if (!name) {
+          logger.warn('Attempted to normalize undefined or null name');
+          return '';
+        }
+        try {
+          return name.toString()
+            .toLowerCase()
+            .replace(/[&.,]/g, ' ')       // Replace special chars with spaces
+            .replace(/\s+/g, ' ')         // Normalize spaces
+            .trim();
+        } catch (error) {
+          logger.error(`Error normalizing name "${name}":`, error);
+          return '';
+        }
+      };
+      
+      const normalizedEmployeeName = normalizeName(employeeName);
+      logger.debug(`Normalized employee name: "${normalizedEmployeeName}"`);
+      
+      // Step 1: Try exact match (case insensitive)
+      const exactMatch = allEmployees.find(employee => {
+        const employeeName1 = getEmployeeName(employee);
+        if (!employeeName1) {
+          logger.warn('Found employee with missing name property:', employee);
+          return false;
+        }
+        return normalizeName(employeeName1) === normalizedEmployeeName;
+      });
+      
+      if (exactMatch) {
+        const exactMatchName = getEmployeeName(exactMatch);
+        logger.debug(`Found exact employee match for "${employeeName}": ${exactMatchName} (${getEmployeeId(exactMatch)})`);
+        return {
+          id: getEmployeeId(exactMatch),
+          name: exactMatchName
+        };
+      }
+      
+      // Step 2: Try substring match (either contained within)
+      const substringMatches = allEmployees.filter(employee => {
+        const employeeName1 = getEmployeeName(employee);
+        if (!employeeName1) {
+          logger.warn('Found employee with missing name property:', employee);
+          return false;
+        }
+        const normalizedEmployee = normalizeName(employeeName1);
+        return normalizedEmployee.includes(normalizedEmployeeName) ||
+               normalizedEmployeeName.includes(normalizedEmployee);
+      });
+      
+      if (substringMatches.length === 1) {
+        const match = substringMatches[0];
+        const matchName = getEmployeeName(match);
+        logger.debug(`Found substring employee match for "${employeeName}": ${matchName} (${getEmployeeId(match)})`);
+        return {
+          id: getEmployeeId(match),
+          name: matchName
+        };
+      }
+      
+      // Step 3: Try word-by-word matching 
+      const words = normalizedEmployeeName.split(/\s+/).filter(word => word.length > 1); // Names can have short words
+      
+      if (words.length > 0) {
+        // Score each employee by how many words they share
+        const scoredEmployees = allEmployees.map(employee => {
+          const employeeName1 = getEmployeeName(employee);
+          if (!employeeName1) {
+            logger.warn('Found employee with missing name property:', employee);
+            return { employee, score: 0 };
+          }
+          
+          const employeeWords = normalizeName(employeeName1)
+            .split(/\s+/)
+            .filter(word => word.length > 1);
+            
+          // Count matching words
+          const matchCount = words.filter(word => 
+            employeeWords.some(employeeWord => 
+              employeeWord.includes(word) || word.includes(employeeWord)
+            )
+          ).length;
+          
+          // Calculate score as percentage of matching words
+          const score = matchCount / Math.max(words.length, employeeWords.length);
+          
+          return {
+            employee,
+            score
+          };
+        });
+        
+        // Find the employee with the highest score, if it's good enough
+        const bestMatch = scoredEmployees.reduce(
+          (best, current) => current.score > best.score ? current : best, 
+          { score: 0.5 } // Higher threshold for names since they should be more precise
+        );
+        
+        if (bestMatch.employee) {
+          const bestMatchName = getEmployeeName(bestMatch.employee);
+          const bestMatchId = getEmployeeId(bestMatch.employee);
+          logger.debug(`Found fuzzy employee match for "${employeeName}": ${bestMatchName} (${bestMatchId}) with score ${bestMatch.score.toFixed(2)}`);
+          return {
+            id: bestMatchId,
+            name: bestMatchName
+          };
+        }
+      }
+      
+      // No match found
+      logger.warn(`No matching employee found for "${employeeName}"`);
+      return null;
+    } catch (error) {
+      logger.error(`Error finding employee by name "${employeeName}":`, error);
       throw error;
     }
   }

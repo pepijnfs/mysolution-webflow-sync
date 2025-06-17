@@ -516,6 +516,29 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
       logger.debug('No sector specified in Mysolution job');
     }
 
+    // Handle employee/contactpersoon reference - look up the employee by name in the employees collection
+    let employeeRef = null;
+    
+    // Check if there's an Owner with a Name
+    if (mysolutionJob.Owner && mysolutionJob.Owner.Name) {
+      try {
+        logger.debug(`Looking up employee for "${mysolutionJob.Owner.Name}"`);
+        const employee = await webflowAPI.findEmployeeByName(mysolutionJob.Owner.Name);
+        
+        if (employee && employee.id) {
+          // Format reference as a simple string ID - this is what Webflow expects for ItemRef fields
+          employeeRef = employee.id;
+          logger.debug(`Found employee reference for "${mysolutionJob.Owner.Name}": ${employee.id} (${employee.name})`);
+        } else {
+          logger.warn(`No employee found for "${mysolutionJob.Owner.Name}", contactpersoon field will not be set`);
+        }
+      } catch (error) {
+        logger.error(`Error finding employee for "${mysolutionJob.Owner.Name}":`, error);
+      }
+    } else {
+      logger.debug('No owner specified in Mysolution job');
+    }
+
     // Clean job name from unnecessary quotes
     const cleanName = mysolutionJob.Name ? cleanJobTitle(mysolutionJob.Name) : 'Untitled Job';
     
@@ -602,6 +625,12 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
       } else {
         logger.debug(`Added sector reference to job data: ${sectorRef}`);
       }
+    }
+    
+    // Only add the employee reference if we found a matching employee
+    if (employeeRef) {
+      webflowJob['contactpersoon'] = employeeRef;
+      logger.debug(`Added employee reference to job data: ${employeeRef}`);
     }
     
     console.log('OUTPUT Webflow Job Data:', JSON.stringify(webflowJob, null, 2));
@@ -909,11 +938,11 @@ function formatRequirementsForWebflow(content) {
       return;
     }
     
-    // Format the first paragraph as bold (if it's not already a list)
+    // Format the first paragraph without bold (removed automatic bold formatting)
     if (index === 0) {
       // Remove any existing HTML formatting
       processedPara = processedPara.replace(/<[^>]*>/g, '');
-      result += `<p><strong>${processedPara}</strong></p>`;
+      result += `<p>${processedPara}</p>`;
     } else {
       result += `<p>${processedPara}</p>`;
     }
@@ -942,7 +971,7 @@ function formatRequirementsForWebflow(content) {
     // Extract the initial paragraph text from the content
     const initialParaMatch = content.match(/<p>([\s\S]*?)(?:<br>\s*\n*\s*<ul|<ul|<\/p>)/i);
     if (initialParaMatch && initialParaMatch[1].trim()) {
-      paraContent = `<p><strong>${initialParaMatch[1].trim()}</strong></p>`;
+      paraContent = `<p>${initialParaMatch[1].trim()}</p>`;
     }
     
     // Extract lists
