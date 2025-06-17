@@ -135,10 +135,10 @@ Based on the Vacatures collection structure:
 | `name` | `name` | Direct mapping |
 | `slug` | `name` | Auto-generated from name with "-" between words. If exists, append random 6-digit alphanumeric ID |
 | `mysolution-id` | `id` | Direct mapping |
-| `job-excerpt-v1` | `title` | Direct mapping |
-| `job-long-description-page` | `title` | Direct mapping |
-| `job-requirements` | `jobDescription` | Contains main job description/responsibilities |
-| `job-description` | `jobRequirements` | Contains job requirements/qualifications |
+| `job-excerpt-v1` | `title` | Short excerpt for cards |
+| `job-long-description-page` | `title` | Main title/introduction content |
+| `job-requirements` | `jobDescription` | Main job description content |
+| `job-description` | `jobRequirements` | Job requirements/qualifications |
 | `vacature-locatie` | `province` | Direct mapping |
 | `vacature-type` | `employmentType` | Direct mapping |
 | `vacature-salaris` | `salary` | Use the salary object's from/to values |
@@ -147,6 +147,16 @@ Based on the Vacatures collection structure:
 | `contactpersoon` | - | Ignored for now |
 | `job-companies` | `sector` | Direct mapping |
 | `uren-per-week` | `hoursPerWeekRange` | Direct mapping |
+
+## Updated Field Mappings (2025-06-17)
+
+| Mysolution Field | Webflow Field | Purpose |
+|-----------------|---------------|---------|
+| `msf__Title__c` | `job-long-description-page` | Main title/introduction content |
+| `msf__Job_Description__c` | `job-requirements` | Main job description content |
+| `msf__Application_Procedure__c` | `job-responsibilities` | Job responsibilities/tasks |
+| `msf__Job_Requirements__c` | `job-description` | Job requirements/qualifications |
+| `msf__Employment_Conditions__c` | `vacature-wat-wij-bieden` | Benefits/what we offer |
 
 ## Implementation Notes
 

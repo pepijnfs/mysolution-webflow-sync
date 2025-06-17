@@ -529,7 +529,7 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
       'slug': createSlug(cleanName),
       'mysolution-id': jobId,
       'job-excerpt-v1': cleanExcerpt(mysolutionJob.msf__Title__c || ''),
-      'job-long-description-page': cleanExcerpt(mysolutionJob.msf__Title__c || ''),
+      'job-long-description-page': formatHtmlContent(mysolutionJob.msf__Title__c || ''),
       'job-requirements': formatRequirementsForWebflow(mysolutionJob.msf__Job_Description__c || ''),
       'job-description': formatHtmlContent(mysolutionJob.msf__Job_Requirements__c || ''),
       'job-responsibilities': formatHtmlContent(mysolutionJob.msf__Application_Procedure__c || ''),
@@ -638,7 +638,7 @@ export function transformWebflowToMysolution(webflowJob) {
       department: fields['job-department'] || '',
       employmentType: fields['job-employment-type'] || 'Full-time',
       requirements: fields['job-description'] || '',
-      benefits: fields['job-benefits'] || '',
+      benefits: fields['vacature-wat-wij-bieden'] || '',
       job_posting_urls: fields['job-application-url'] ? [fields['job-application-url']] : [],
       // Additional fields can be added based on the Mysolution schema
     };
