@@ -253,7 +253,7 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
       if (mysolutionJobs.length > 0) {
         console.log(`\n=== 📋 CHANGED JOBS SUMMARY ===`);
         mysolutionJobs.forEach((job, index) => {
-          console.log(`${index + 1}. '${job.Name || 'Unnamed'}' (ID: ${job.Id})`);
+          console.log(`${index + 1}. '${job.Name || 'No Name'}' (ID: ${job.Id})`);
           console.log(`   Last modified: ${job.LastModifiedDate || 'Unknown'}`);
         });
       }
@@ -347,7 +347,7 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
         // Ensure consistent ID handling - Mysolution uses capital 'I' in Id
         const jobId = mysolutionJob.Id;
         
-        console.log(`\n=== 🔄 Processing job: "${mysolutionJob.Name || 'Unnamed'}" (ID: ${jobId}) ===`);
+        console.log(`\n=== 🔄 Processing job: "${mysolutionJob.Name || 'No Name'}" (ID: ${jobId}) ===`);
         
         // Log the modification date for debugging
         if (mysolutionJob.LastModifiedDate) {
@@ -378,28 +378,10 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
           }
         }
         
-        // Check if the job already exists in Webflow
-        const existingWebflowJob = webflowJobsMap.get(jobId);
-        
-        let result;
-        if (existingWebflowJob) {
-          // Check if job was previously archived
-          if (existingWebflowJob.isArchived === true) {
-            console.log(`🔄 REACTIVATING previously archived job "${mysolutionJob.Name}" in Webflow`);
-            result = await webflowAPI.updateJob(existingWebflowJob.id, webflowJobData);
-            console.log('✅ Job reactivated successfully!');
-          } else {
-            // Update existing job in Webflow
-            console.log(`📝 UPDATING existing job "${mysolutionJob.Name}" in Webflow`);
-            result = await webflowAPI.updateJob(existingWebflowJob.id, webflowJobData);
-            console.log('✅ Job updated successfully!');
-          }
-        } else {
-          // Create new job in Webflow
-          console.log(`🆕 CREATING new job "${mysolutionJob.Name}" in Webflow`);
-          result = await webflowAPI.createJob(webflowJobData);
-          console.log('✅ New job created successfully!');
-        }
+        // Use standardized create/update method for consistent field processing
+        console.log(`🔄 PROCESSING job "${mysolutionJob.Name}" in Webflow (ID: ${jobId})`);
+        const result = await webflowAPI.createOrUpdateJobByMysolutionId(jobId, webflowJobData);
+        console.log(`✅ Job ${result.action} successfully!`);
         
         return { id: jobId, success: true, result, modified: mysolutionJob.LastModifiedDate };
       } catch (error) {
