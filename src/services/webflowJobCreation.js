@@ -26,7 +26,7 @@ export async function createJob(mysolutionJob, options = {}) {
     }
 
     // Transform Mysolution job to Webflow format
-    const webflowJobData = transformMysolutionToWebflow(mysolutionJob);
+    const webflowJobData = await transformMysolutionToWebflow(mysolutionJob);
 
     // Create job in Webflow
     logger.info(`Creating job in Webflow: ${webflowJobData.name} (Mysolution ID: ${mysolutionJob.id})`);
@@ -133,7 +133,7 @@ export async function createOrUpdateJob(mysolutionJob, options = {}) {
     }
 
     // Transform job data to Webflow format
-    const webflowJobData = transformMysolutionToWebflow(mysolutionJob);
+    const webflowJobData = await transformMysolutionToWebflow(mysolutionJob);
     
     // Check for internal job status
     const isInternalJob = mysolutionJob.msf__Show_On_Internal__c === true;

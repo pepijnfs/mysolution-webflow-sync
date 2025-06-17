@@ -166,7 +166,7 @@ export async function updateJob(mysolutionJob, options = {}) {
     }
     
     // Transform the Mysolution job to Webflow format
-    const webflowJobData = transformMysolutionToWebflow(mysolutionJob);
+    const webflowJobData = await transformMysolutionToWebflow(mysolutionJob);
     
     // Check if this is an internal job
     const isInternalJob = mysolutionJob.msf__Show_On_Internal__c === true;
