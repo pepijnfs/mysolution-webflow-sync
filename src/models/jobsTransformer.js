@@ -530,8 +530,8 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
       'mysolution-id': jobId,
       'job-excerpt-v1': cleanExcerpt(mysolutionJob.msf__Title__c || ''),
       'job-long-description-page': cleanExcerpt(mysolutionJob.msf__Title__c || ''),
-      'job-requirements': formatRequirementsForWebflow(mysolutionJob.msf__Job_Requirements__c || ''),
-      'job-description': formatHtmlContent(mysolutionJob.msf__Job_Description__c || ''),
+      'job-requirements': formatRequirementsForWebflow(mysolutionJob.msf__Job_Description__c || ''),
+      'job-description': formatHtmlContent(mysolutionJob.msf__Job_Requirements__c || ''),
       'job-responsibilities': formatHtmlContent(mysolutionJob.msf__Application_Procedure__c || ''),
       'vacature-wat-wij-bieden': formatHtmlContent(mysolutionJob.msf__Employment_Conditions__c || ''),
       'vacature-locatie': mysolutionJob.BS_Provincie__c || '',
@@ -632,12 +632,12 @@ export function transformWebflowToMysolution(webflowJob) {
     // Create a transformed job object for Mysolution
     const mysolutionJob = {
       title: fields.name || 'Untitled Job',
-      description: fields['job-description'] || '',
+      description: fields['job-requirements'] || '',
       status: reverseMapJobStatus(fields['job-status']) || 'open',
       location: fields['job-location'] || '',
       department: fields['job-department'] || '',
       employmentType: fields['job-employment-type'] || 'Full-time',
-      requirements: fields['job-requirements'] || '',
+      requirements: fields['job-description'] || '',
       benefits: fields['job-benefits'] || '',
       job_posting_urls: fields['job-application-url'] ? [fields['job-application-url']] : [],
       // Additional fields can be added based on the Mysolution schema

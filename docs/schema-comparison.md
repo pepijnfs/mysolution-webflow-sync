@@ -137,8 +137,8 @@ Based on the Vacatures collection structure:
 | `mysolution-id` | `id` | Direct mapping |
 | `job-excerpt-v1` | `title` | Direct mapping |
 | `job-long-description-page` | `title` | Direct mapping |
-| `job-requirements` | `jobRequirements` | Direct mapping |
-| `job-description` | `jobDescription` | Direct mapping (duplicate, to be handled later) |
+| `job-requirements` | `jobDescription` | Contains main job description/responsibilities |
+| `job-description` | `jobRequirements` | Contains job requirements/qualifications |
 | `vacature-locatie` | `province` | Direct mapping |
 | `vacature-type` | `employmentType` | Direct mapping |
 | `vacature-salaris` | `salary` | Use the salary object's from/to values |
