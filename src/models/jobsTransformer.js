@@ -794,15 +794,17 @@ function formatHtmlContent(htmlContent) {
     return '';
   }).join('');
   
-  // Handle lists - ensure they're properly formatted
+  // Handle lists - preserve original formatting from Mysolution
+  // NOTE: Mysolution provides clean list items without paragraph tags
+  // Adding extra <p> tags causes spacing issues in Webflow
   formattedContent = formattedContent
-    // Fix malformed list items
-    .replace(/<li>([^<]+)<\/li>/gi, '<li><p>$1</p></li>')
-    // Ensure lists have proper structure
+    // Only fix lists that already have paragraph tags to prevent double wrapping
     .replace(/<li>\s*<p>/gi, '<li><p>')
     .replace(/<\/p>\s*<\/li>/gi, '</p></li>')
-    // Fix any unclosed paragraph tags inside list items
+    // Fix any unclosed paragraph tags inside list items that already have them
     .replace(/<li><p>(.*?)(?:<\/li>|<li>)/gi, '<li><p>$1</p></li>');
+  // DO NOT add paragraph tags to clean list items - preserve Mysolution formatting
+  // .replace(/<li>([^<]+)<\/li>/gi, '<li><p>$1</p></li>') // REMOVED - causes spacing issues
   
   // Secondary fix for double closing paragraphs - catch any that might have been 
   // introduced during formatting
@@ -831,6 +833,15 @@ function formatHtmlContent(htmlContent) {
   formattedContent = formattedContent
     .replace(/<\/p><\/p><\/li>/gi, '</p></li>')
     .replace(/<li><p>(.*?)<\/p><\/p><\/li>/gi, '<li><p>$1</p></li>');
+  
+  // CRITICAL FIX: Decode HTML entities that Webflow may have encoded
+  // This ensures "&amp;" displays as "&" on the frontend
+  formattedContent = formattedContent
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, '\'');
   
   // Log the formatted HTML for debugging
   logger.debug('Formatted HTML content:', formattedContent.substring(0, 200) + (formattedContent.length > 200 ? '...' : ''));
@@ -955,10 +966,9 @@ function formatRequirementsForWebflow(content) {
     if (listMatches && !hasList) {
       // Only add the lists if they weren't already included in the paragraphs
       listMatches.forEach(list => {
-        // Fix list items to ensure they're properly formatted
-        const fixedList = list.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, 
-          (match, content) => `<li><p>${content.trim()}</p></li>`);
-        result += fixedList;
+        // PRESERVE Mysolution's clean list formatting - do NOT add paragraph tags
+        // Adding <p> tags to list items causes spacing issues in Webflow
+        result += list;
       });
     }
   }
@@ -977,11 +987,8 @@ function formatRequirementsForWebflow(content) {
     // Extract lists
     const listMatches = content.match(/<ul[^>]*>[\s\S]*?<\/ul>/gi);
     if (listMatches) {
-      // Fix the list items format
-      const listContent = listMatches.map(list => 
-        list.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (match, content) => 
-          `<li><p>${content.trim()}</p></li>`)
-      ).join('');
+      // PRESERVE Mysolution's clean list formatting - do NOT add paragraph tags
+      const listContent = listMatches.map(list => list).join('');
       
       // Combine paragraph and list
       result = paraContent + listContent;
@@ -1000,8 +1007,6 @@ function formatRequirementsForWebflow(content) {
     // Fix duplicate closing paragraph tags
     .replace(/<\/p><\/p><\/li>/gi, '</p></li>')
     .replace(/<li><p>(.*?)<\/p><\/p><\/li>/gi, '<li><p>$1</p></li>')
-    // Fix missing paragraph tags in list items
-    .replace(/<li>([^<]+)<\/li>/gi, '<li><p>$1</p></li>')
     // Fix any unclosed paragraph tags in list items
     .replace(/<li>([^<]*)<p>([^<]*?)(?:<\/li>|<li>)/gi, '<li><p>$1$2</p></li>');
   
@@ -1023,6 +1028,15 @@ function formatRequirementsForWebflow(content) {
   
   // Remove any raw newlines in the final output to prevent Webflow truncation
   result = result.replace(/\n/g, '');
+  
+  // CRITICAL FIX: Decode HTML entities that Webflow may have encoded
+  // This ensures "&amp;" displays as "&" on the frontend
+  result = result
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, '\'');
   
   // Log the final result for debugging
   logger.debug('Formatted job requirements for Webflow:', result);
@@ -1068,6 +1082,15 @@ function cleanExcerpt(excerpt) {
     .replace(/<[^>]*>/g, '')      // Remove all HTML tags
     .replace(/\s+/g, ' ')         // Normalize whitespace
     .trim();
+  
+  // CRITICAL FIX: Decode HTML entities that Webflow may have encoded
+  // This ensures "&amp;" displays as "&" on the frontend
+  cleanedExcerpt = cleanedExcerpt
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, '\'');
   
   logger.debug(`Cleaned job excerpt from "${excerpt}" to "${cleanedExcerpt}"`);
   return cleanedExcerpt;

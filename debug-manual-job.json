@@ -1,40 +1,38 @@
 {
   "attributes": {
     "type": "msf__Job__c",
-    "url": "/services/data/v64.0/sobjects/msf__Job__c/a0wd1000000ZzDWAA0"
+    "url": "/services/data/v64.0/sobjects/msf__Job__c/a0wd1000000ckZjAAI"
   },
-  "Id": "a0wd1000000ZzDWAA0",
-  "OwnerId": "005d1000001bcGbAAI",
+  "Id": "a0wd1000000ckZjAAI",
+  "OwnerId": "005d1000001bfYHAAY",
   "IsDeleted": false,
-  "Name": "Maintenance Supervisor ETD",
+  "Name": "Senior QA Officer",
   "RecordTypeId": "012d1000000GyGMAA0",
-  "CreatedDate": "2025-06-13T13:51:23.000+0000",
-  "CreatedById": "005d1000001bcGbAAI",
-  "LastModifiedDate": "2025-06-17T09:08:29.000+0000",
-  "LastModifiedById": "005d1000001NSSrAAO",
-  "SystemModstamp": "2025-06-17T09:08:29.000+0000",
-  "msf__Account_Name__c": "Cargill",
-  "msf__Account__c": "001d100000BK1GLAA1",
-  "msf__Application_Procedure__c": "<ul><li>Leidinggeven aan de afdeling elektrotechniek, inclusief instrumentatie en besturingssystemen.</li><li>Het team inhoudelijk trainen en begeleiden om een hoger technisch niveau te bereiken.</li><li>Opstellen en uitvoeren van onderhoudsplannen binnen het asset management programma.</li><li>Coördineren van preventief onderhoud en storingsanalyse.</li><li>Begeleiden en implementeren van verbeterprojecten en nieuwe installaties.</li><li>Samenwerken met externe partijen zoals leveranciers en onderhoudscontractors.</li><li>Voorraadbeheer van elektrische onderdelen en materialen.</li><li>Ondersteunen bij audits en naleving van veiligheids- en kwaliteitsnormen.</li><li>Werken in een matrixorganisatie waarin je schakelt met verschillende stakeholders.</li><li>Deelnemen aan consignatiediensten (oproepbaar van vrijdag tot vrijdag, tegen extra vergoeding).</li></ul><br>",
-  "msf__Education_Level__c": "MBO",
-  "msf__Employment_Conditions__c": "<ul><li>Marktconform Salaris</li><li>13e Maand</li><li>Vakantiedagen: 25 + 13 ATV</li><li>21 cent kilometervergoeding</li></ul>",
+  "CreatedDate": "2025-06-17T12:46:35.000+0000",
+  "CreatedById": "005d1000001bfYHAAY",
+  "LastModifiedDate": "2025-06-17T12:59:24.000+0000",
+  "LastModifiedById": "005d1000001bfYHAAY",
+  "SystemModstamp": "2025-06-17T12:59:24.000+0000",
+  "msf__Account_Name__c": "Vemedia",
+  "msf__Account__c": "001d100000BJyPrAAL",
+  "msf__Application_Procedure__c": "<ul><li>Toezien op en implementeren van internationale wetgeving (GMP, GDP, ISO13485)</li><li>Beheren, opstellen en autoriseren van farmaceutische kwaliteitsdocumenten en procedures </li><li>Coördineren van zelfinspecties en externe audits</li><li>Trainen van medewerkers op het gebied van GMP en GDP </li><li>Controleren en beoordelen van productie- en analysemethoden en batchdocumentatie</li><li>Beheren van kwaliteitsprocessen zoals deviatiebeheer, CAPA’s, change control, klachten en recalls</li><li>Onderhouden van contacten met leveranciers, afdelingen en overheidsinstanties</li></ul>",
+  "msf__Education_Level__c": "HBO",
   "msf__Experience_Level__c": "Medior",
-  "msf__Hours_Per_Week__c": 40,
-  "msf__Job_Description__c": "<span style=\"background-color: rgb(255, 255, 255);\">Je coördineert preventief onderhoud en storingsanalyse, begeleidt verbeterprojecten en nieuwe installaties, en werkt samen met externe partijen zoals leveranciers en onderhoudscontractors. Voorraadbeheer van elektrische onderdelen en materialen, ondersteuning bij audits en naleving van veiligheids- en kwaliteitsnormen behoren tot je taken. Je werkt in een matrixorganisatie en neemt deel aan consignatiediensten tegen extra vergoeding.</span><br><br><span style=\"background-color: rgb(255, 255, 255);\">Locatie: Gouda</span><br><span style=\"background-color: rgb(255, 255, 255);\">Inzet: 36-40 uur</span><br><span style=\"background-color: rgb(255, 255, 255);\">Duurt: Vast</span><br>",
-  "msf__Job_Number__c": "2025-00737",
-  "msf__Job_Requirements__c": "<br><ul><li>MBO/HBO Elektrotechniek of gelijkwaardige ervaring vereist.</li><li>Aantoonbare technische achtergrond en ervaring binnen onderhoud of engineering.</li><li>Minimaal 1 jaar leidinggevende ervaring.</li><li>Ervaring met PLC-systemen en industriële automatisering.</li><li>Ervaring binnen de foodindustrie of vergelijkbare productieomgeving.</li><li>Communicatief sterk en vloeiend Nederlands sprekend.</li><li>NEN papieren of Stipel-persoonscertificaat</li></ul><br>",
+  "msf__Job_Description__c": "Je komt te werken bij een farmaceutisch producent en bemiddelaar van medische hulpmiddelen. Het bedrijf opereert internationaal en werkt conform de richtlijnen van GMP, GDP en ISO 13485. Binnen een professionele en samenwerkingsgerichte cultuur zul je onder andere audits uitvoeren, processen optimaliseren en de kwaliteitsstandaarden naar een hoger niveau tillen.<br><br><strong>Locatie</strong>: Amsterdam<br><strong>Inzet</strong>: 32 / 40 uur<br>",
+  "msf__Job_Number__c": "2025-00742",
+  "msf__Job_Requirements__c": "<ul><li>Minimaal 4 jaar relevante QA-ervaring binnen de farmaceutische industrie</li><li>Uitgebreide kennis van GMP of GDP en ISO 13485</li><li>Sterk in documentbeheer, audits en het beoordelen van afwijkingen </li><li>Ervaring met MS Office en ERP-systemen</li><li>Uitstekende beheersing van Nederlands en Engels, zowel mondeling als schriftelijk</li><li>Analytisch, besluitvaardig, nauwkeurig en communicatief sterk</li></ul>",
   "msf__Label__c": "Mysolution",
-  "msf__Linked_To_Master_Job__c": "a0wd1000000TVtFAAW",
+  "msf__Linked_To_Master_Job__c": "a0wd1000000MPm9AAG",
   "msf__My_Team__c": false,
-  "msf__Professional_Field__c": "Engineering",
+  "msf__Professional_Field__c": "Pharma",
   "msf__Publish_On_Jobboards__c": false,
-  "msf__Recruiter__c": "005d1000001bcGbAAI",
+  "msf__Recruiter__c": "005d1000001bfYHAAY",
   "msf__Requested_Quantity__c": 1,
   "msf__Show_On_Internal__c": false,
   "msf__Show_On_Website__c": true,
   "msf__Status__c": "Online",
-  "msf__Title__c": "<span style=\"background-color: rgb(255, 255, 255);\">Als Maintenance Supervisor ETD ben je verantwoordelijk voor het leidinggeven aan de afdeling elektrotechniek, inclusief instrumentatie en besturingssystemen. Je traint en begeleidt het team om een hoger technisch niveau te bereiken en stelt onderhoudsplannen op binnen het asset management programma. </span><br>",
-  "msf__Work_Address_City__c": "Gouda",
+  "msf__Title__c": "Ben jij een ervaren QA-professional die graag werkt in een GMP-omgeving met verantwoordelijkheid voor kwaliteit en compliance? Dan is deze rol bij een toonaangevende farmaceutische producent wellicht iets voor jou! <br>",
+  "msf__Work_Address_City__c": "Diemen",
   "msf__Total_Cost1__c": 0,
   "msf__Total_Profit1__c": 0,
   "msf__Total_send_Job_Alerts__c": 0,
@@ -45,18 +43,18 @@
   "msf__Job_Language__c": "nl_NL",
   "BS_Soort_dienstverband__c": "Vast",
   "BS_Type_dienstverband__c": "Permanent",
-  "BS_Provincie__c": "Zuid-Holland",
+  "BS_Provincie__c": "Noord-Holland",
   "BS_Uren_per_week__c": "32–40 uur",
-  "BS_Sector__c": "Chemical Manufacturing",
-  "Jaarsalaris__c": "70.000 – 75.000",
+  "BS_Sector__c": "Pharma & Healthcare",
+  "Jaarsalaris__c": "In overleg",
   "Interne_vacature__c": false,
   "Owner": {
     "attributes": {
       "type": "Name",
-      "url": "/services/data/v64.0/sobjects/User/005d1000001bcGbAAI"
+      "url": "/services/data/v64.0/sobjects/User/005d1000001bfYHAAY"
     },
-    "Id": "005d1000001bcGbAAI",
-    "Name": "Joris Kramer"
+    "Id": "005d1000001bfYHAAY",
+    "Name": "Kerim Likic"
   },
   "RecordType": {
     "attributes": {
@@ -69,42 +67,43 @@
   "CreatedBy": {
     "attributes": {
       "type": "User",
-      "url": "/services/data/v64.0/sobjects/User/005d1000001bcGbAAI"
+      "url": "/services/data/v64.0/sobjects/User/005d1000001bfYHAAY"
     },
-    "Id": "005d1000001bcGbAAI",
-    "Name": "Joris Kramer"
+    "Id": "005d1000001bfYHAAY",
+    "Name": "Kerim Likic"
   },
   "LastModifiedBy": {
     "attributes": {
       "type": "User",
-      "url": "/services/data/v64.0/sobjects/User/005d1000001NSSrAAO"
+      "url": "/services/data/v64.0/sobjects/User/005d1000001bfYHAAY"
     },
-    "Id": "005d1000001NSSrAAO",
-    "Name": "Bart Schipper"
+    "Id": "005d1000001bfYHAAY",
+    "Name": "Kerim Likic"
   },
   "msf__Account__r": {
     "attributes": {
       "type": "Account",
-      "url": "/services/data/v64.0/sobjects/Account/001d100000BK1GLAA1"
+      "url": "/services/data/v64.0/sobjects/Account/001d100000BJyPrAAL"
     },
-    "Id": "001d100000BK1GLAA1",
-    "Name": "Cargill"
+    "Id": "001d100000BJyPrAAL",
+    "Name": "Vemedia"
   },
   "msf__Linked_To_Master_Job__r": {
     "attributes": {
       "type": "msf__Job__c",
-      "url": "/services/data/v64.0/sobjects/msf__Job__c/a0wd1000000TVtFAAW"
+      "url": "/services/data/v64.0/sobjects/msf__Job__c/a0wd1000000MPm9AAG"
     },
-    "Id": "a0wd1000000TVtFAAW",
-    "Name": "Maintenance Supervisor ETD"
+    "Id": "a0wd1000000MPm9AAG",
+    "Name": "Sr QA Officer"
   },
   "msf__Recruiter__r": {
     "attributes": {
       "type": "User",
-      "url": "/services/data/v64.0/sobjects/User/005d1000001bcGbAAI"
+      "url": "/services/data/v64.0/sobjects/User/005d1000001bfYHAAY"
     },
-    "Id": "005d1000001bcGbAAI",
-    "Name": "Joris Kramer"
+    "Id": "005d1000001bfYHAAY",
+    "Name": "Kerim Likic"
   },
+  "msf__Employment_Conditions__c": null,
   "msf__Company_Description__c": null
 }
