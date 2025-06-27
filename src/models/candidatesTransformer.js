@@ -89,28 +89,28 @@ function transformWebflowToMysolution(webflowCandidate, jobId = null) {
           const mimeType = fileData.mimetype?.toLowerCase() || '';
           
           switch (mimeType) {
-            case 'application/pdf':
+          case 'application/pdf':
+            fileExtension = '.pdf';
+            break;
+          case 'application/msword':
+            fileExtension = '.doc';
+            break;
+          case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+            fileExtension = '.docx';
+            break;
+          case 'text/plain':
+            fileExtension = '.txt';
+            break;
+          default:
+            // Try to extract extension from original filename
+            const originalExt = fileData.originalname?.split('.').pop()?.toLowerCase();
+            if (originalExt && ['pdf', 'doc', 'docx', 'txt'].includes(originalExt)) {
+              fileExtension = '.' + originalExt;
+              logger.debug(`Using extension from original filename: ${fileExtension}`);
+            } else {
+              logger.warn(`Unrecognized mime type: ${mimeType}, defaulting to .pdf`);
               fileExtension = '.pdf';
-              break;
-            case 'application/msword':
-              fileExtension = '.doc';
-              break;
-            case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-              fileExtension = '.docx';
-              break;
-            case 'text/plain':
-              fileExtension = '.txt';
-              break;
-            default:
-              // Try to extract extension from original filename
-              const originalExt = fileData.originalname?.split('.').pop()?.toLowerCase();
-              if (originalExt && ['pdf', 'doc', 'docx', 'txt'].includes(originalExt)) {
-                fileExtension = '.' + originalExt;
-                logger.debug(`Using extension from original filename: ${fileExtension}`);
-              } else {
-                logger.warn(`Unrecognized mime type: ${mimeType}, defaulting to .pdf`);
-                fileExtension = '.pdf';
-              }
+            }
           }
 
           // Use original filename if available, otherwise generate one

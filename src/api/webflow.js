@@ -255,19 +255,26 @@ class WebflowAPI {
 
   async publishSite() {
     try {
-      console.log('==== PUBLISHING SITE TO WEBFLOW SUBDOMAIN (STAGING) ====');
+      console.log('==== PUBLISHING SITE TO ALL DOMAINS (STAGING + PRODUCTION) ====');
       // Always get the latest site data to ensure we have the correct domain IDs
       console.log('Fetching site information...');
       const siteInfo = await this.getSite();
       console.log(`Retrieved site information for site ${siteInfo.name} (${this.siteId})`);
       
-      // Create a payload that ONLY publishes to the Webflow subdomain (staging)
-      // This ensures that the site is only published to baselifesciences.webflow.io
+      // Create a payload that publishes to BOTH the Webflow subdomain AND custom domains
+      // This ensures that the site is published to both baselifesciences.webflow.io AND baseselect.nl
       const payload = {
         publishToWebflowSubdomain: true
       };
       
-      console.log('Publishing only to Webflow subdomain (baselifesciences.webflow.io)');
+      // Add custom domain IDs if available to also publish to main baseselect.nl domain
+      if (this.customDomains && this.customDomains.length > 0) {
+        payload.customDomains = this.customDomains;
+        console.log(`Publishing to Webflow subdomain AND ${this.customDomains.length} custom domain(s) including baseselect.nl`);
+      } else {
+        console.log('Publishing to Webflow subdomain only (no custom domains found)');
+      }
+      
       console.log('Publish payload:', JSON.stringify(payload, null, 2));
       
       // Make the publish request with the properly formatted payload
@@ -474,7 +481,7 @@ class WebflowAPI {
         // 2. If we received fewer items than requested batch size (indicates last page)
         if (currentBatchSize < batchSize) {
           console.log(`- Received ${currentBatchSize} items (less than batch size ${batchSize})`);
-          console.log(`- This indicates we've reached the last page, stopping pagination`);
+          console.log('- This indicates we\'ve reached the last page, stopping pagination');
           hasMore = false;
           break;
         }
@@ -488,7 +495,7 @@ class WebflowAPI {
         
         // Safety check - prevent infinite loops
         if (pageCount > 100) {
-          console.log(`- SAFETY LIMIT: Reached max page count (100), stopping pagination`);
+          console.log('- SAFETY LIMIT: Reached max page count (100), stopping pagination');
           logger.warn(`Reached maximum page count (100) when fetching items from collection ${collectionId}`);
           hasMore = false;
           break;
@@ -1467,10 +1474,10 @@ class WebflowAPI {
       // If we get here, continue with the existing matching logic
       // Add a special case for common problematic sectors
       const specialCases = {
-        "Food & FCMG": ["food", "fcmg", "fmcg", "consumer goods"],
-        "Food & FMCG": ["food", "fcmg", "fmcg", "consumer goods"],
-        "IT": ["technology", "tech", "information technology"],
-        "Healthcare": ["health", "healthcare", "medical", "zorg"]
+        'Food & FCMG': ['food', 'fcmg', 'fmcg', 'consumer goods'],
+        'Food & FMCG': ['food', 'fcmg', 'fmcg', 'consumer goods'],
+        'IT': ['technology', 'tech', 'information technology'],
+        'Healthcare': ['health', 'healthcare', 'medical', 'zorg']
       };
       
       // Check if we have a special case mapping for this sector

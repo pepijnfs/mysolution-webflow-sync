@@ -83,7 +83,7 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
         
         // Skip parsing if already "In overleg" (or case variations)
         if (mysolutionJob.Jaarsalaris__c.toLowerCase().includes('overleg')) {
-          logger.debug(`Salary value is already "In overleg", keeping default`);
+          logger.debug('Salary value is already "In overleg", keeping default');
           vacatureSalaris = 'In overleg';
         }
         // Check for common patterns with formatted ranges
@@ -158,7 +158,7 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
               vacatureSalaris = bestMatch;
               logger.debug(`Mapped salary range to closest Webflow option: ${vacatureSalaris}`);
             } else {
-              logger.warn(`Could not find an appropriate salary range option, using default`);
+              logger.warn('Could not find an appropriate salary range option, using default');
             }
           } else {
             // Single number (e.g. "40.000")
@@ -269,7 +269,7 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
         
         // Skip parsing if already "In overleg" (or case variations)
         if (mysolutionJob.Uurtarief__c.toLowerCase().includes('overleg')) {
-          logger.debug(`Hourly rate value is already "In overleg", keeping default`);
+          logger.debug('Hourly rate value is already "In overleg", keeping default');
           hourlyRate = 'In overleg';
         }
         else {
@@ -336,7 +336,7 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
               hourlyRate = bestMatch;
               logger.debug(`Mapped hourly rate range to closest Webflow option: ${hourlyRate}`);
             } else {
-              logger.warn(`Could not find an appropriate hourly rate range option, using default`);
+              logger.warn('Could not find an appropriate hourly rate range option, using default');
             }
           } else {
             // Single number (e.g. "65")
@@ -493,7 +493,7 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
       // Log a warning if a sector was also specified to help administrators identify potential issues
       if (mysolutionJob.BS_Sector__c) {
         logger.warn(`Internal job (${jobId}) has both internal flag AND sector "${mysolutionJob.BS_Sector__c}" set. ` +
-                   `Ignoring specified sector and using "Interne Vacature" instead.`);
+                   'Ignoring specified sector and using "Interne Vacature" instead.');
       }
       
       logger.debug(`Job is marked as internal, setting sector to "Interne Vacature" (${interneVacatureId})`);
@@ -957,7 +957,7 @@ function formatRequirementsForWebflow(content) {
       listMatches.forEach(list => {
         // Fix list items to ensure they're properly formatted
         const fixedList = list.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, 
-                                     (match, content) => `<li><p>${content.trim()}</p></li>`);
+          (match, content) => `<li><p>${content.trim()}</p></li>`);
         result += fixedList;
       });
     }
@@ -1043,7 +1043,7 @@ function cleanJobTitle(title) {
   
   // Check for surrounding quotes (both " and ')
   if ((cleanedTitle.startsWith('"') && cleanedTitle.endsWith('"')) || 
-      (cleanedTitle.startsWith("'") && cleanedTitle.endsWith("'"))) {
+      (cleanedTitle.startsWith('\'') && cleanedTitle.endsWith('\''))) {
     cleanedTitle = cleanedTitle.substring(1, cleanedTitle.length - 1);
   }
   

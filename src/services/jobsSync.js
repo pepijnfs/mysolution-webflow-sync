@@ -251,7 +251,7 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
       
       // Log detailed information about what we found
       if (mysolutionJobs.length > 0) {
-        console.log(`\n=== 📋 CHANGED JOBS SUMMARY ===`);
+        console.log('\n=== 📋 CHANGED JOBS SUMMARY ===');
         mysolutionJobs.forEach((job, index) => {
           console.log(`${index + 1}. '${job.Name || 'No Name'}' (ID: ${job.Id})`);
           console.log(`   Last modified: ${job.LastModifiedDate || 'Unknown'}`);

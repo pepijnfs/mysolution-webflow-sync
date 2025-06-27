@@ -135,7 +135,7 @@ function saveSyncState(state) {
   // If in serverless environment, store in memory and return
   if (isServerless) {
     inMemorySyncState = stateCopy;
-    console.log(`Saved sync state in memory (serverless mode)`);
+    console.log('Saved sync state in memory (serverless mode)');
     return true;
   }
   
