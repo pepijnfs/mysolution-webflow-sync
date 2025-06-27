@@ -822,9 +822,12 @@ function formatHtmlContent(htmlContent) {
     formattedContent = `<p>${formattedContent}</p>`;
   }
   
-  // Important: Make sure text doesn't have undisplayed or truncated sections 
-  // by adding explicit div wrapper
-  formattedContent = `<div>${formattedContent}</div>`;
+  // CRITICAL FIX: Only add div wrapper when content has multiple block elements
+  // Single lists don't need div wrapper - it causes excessive spacing in Webflow
+  const hasMultipleBlocks = (formattedContent.match(/<(p|ul|ol|div|h[1-6])[^>]*>/gi) || []).length > 1;
+  if (hasMultipleBlocks) {
+    formattedContent = `<div>${formattedContent}</div>`;
+  }
   
   // CRITICAL: Remove any raw newlines in the final output to prevent Webflow truncation
   formattedContent = formattedContent.replace(/\n/g, '');

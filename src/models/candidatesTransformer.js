@@ -89,9 +89,10 @@ function transformWebflowToMysolution(webflowCandidate, jobId = null) {
           const mimeType = fileData.mimetype?.toLowerCase() || '';
           
           switch (mimeType) {
-          case 'application/pdf':
-            fileExtension = '.pdf';
-            break;
+                  case 'application/pdf': {
+          fileExtension = '.pdf';
+          break;
+        }
           case 'application/msword':
             fileExtension = '.doc';
             break;
