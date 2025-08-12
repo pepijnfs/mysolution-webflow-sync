@@ -725,6 +725,12 @@ class WebflowAPI {
     console.log('Job data being sent to Webflow API:', JSON.stringify(jobData, null, 2));
     
     try {
+      // Preserve existing URL slug on updates to avoid breaking links
+      if (Object.prototype.hasOwnProperty.call(jobData, 'slug')) {
+        console.log('Preserving existing slug on update – removing provided slug from payload');
+        delete jobData['slug'];
+      }
+      
       // Enhanced debugging for validation errors
       console.log('DETAILED JOB DATA VALIDATION:');
       console.log('- vacature-salaris:', jobData['vacature-salaris'], typeof jobData['vacature-salaris']);
@@ -875,29 +881,20 @@ class WebflowAPI {
           action: 'updated'
         };
       } catch (error) {
-        // Check if it's a duplicate slug error
+        // Check if it's a duplicate slug error – on updates, never regenerate slug, just remove and retry
         if (error.message.includes('Validation Error') && 
             error.message.includes('slug') && 
             error.message.includes('already in database')) {
-          
-          console.log('Detected duplicate slug error during update. Generating a unique slug and retrying...');
-          
-          // Generate a unique slug with random suffix
-          const originalSlug = jobData['slug'] || '';
-          jobData['slug'] = this._generateUniqueSlug(originalSlug);
-          
-          console.log(`Generated unique slug: ${jobData['slug']}`);
-          
-          // Update payload with new slug
-          payload.fieldData = jobData;
-          
-          // Retry the request with the new slug
+          console.log('Detected duplicate slug error during update. Will preserve existing slug by removing it from payload and retrying...');
+          if (Object.prototype.hasOwnProperty.call(jobData, 'slug')) {
+            delete jobData['slug'];
+            payload.fieldData = jobData;
+          }
           const retryResult = await this._makeRequest('patch', `collections/${this.jobsCollectionId}/items/${jobId}`, payload);
-          console.log('Retry successful with new slug:', retryResult);
-          
+          console.log('Retry successful after preserving slug:', retryResult);
           return {
             ...retryResult,
-            action: 'updated (with unique slug)'
+            action: 'updated (slug preserved)'
           };
         }
         
