@@ -42,8 +42,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   credentials: true
 }));
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+// Body size limit configurable via env (default 50mb)
+const bodyLimitMb = parseInt(process.env.BODY_LIMIT_MB || '50', 10);
+const bodyLimit = `${bodyLimitMb}mb`;
+app.use(bodyParser.json({ limit: bodyLimit }));
+app.use(bodyParser.urlencoded({ extended: true, limit: bodyLimit }));
 
 // Add request logging middleware for debugging form submissions
 app.use((req, res, next) => {
@@ -68,24 +71,7 @@ if (config.logging.httpRequestLogging) {
   app.use(logger.middleware.request);
 }
 
-// Custom log transport that emits events for real-time logging
-logger.addRealTimeTransport(function(info) {
-  const { level, message, timestamp, metadata } = info;
-  const logEvent = { 
-    timestamp, 
-    level, 
-    message,
-    metadata
-  };
-  
-  // Emit the log event for real-time streaming
-  eventBus.emit('log', logEvent);
-  
-  // Detect sync completion events and emit them
-  if (message.includes('sync completed') || message.includes('Published to Webflow')) {
-    eventBus.emit('sync-completed');
-  }
-});
+// Real-time logger transport will be attached per SSE connection in /api/events
 
 // API Routes
 app.use('/api/jobs', jobsRoutes);
@@ -97,7 +83,7 @@ app.use('/api', apiRoutes);
 // Vercel cron endpoints (must be directly mounted at /api/cron)
 /**
  * @route   POST /api/cron/incremental-sync
- * @desc    Vercel cron job endpoint for incremental sync (every 5 minutes)
+ * @desc    Vercel cron job endpoint for incremental sync (every 2 hours)
  * @access  Public (Vercel cron only)
  */
 app.get('/api/cron/incremental-sync', async (req, res) => {
@@ -234,8 +220,27 @@ app.get('/api/events', (req, res) => {
   res.flushHeaders();
 
   // Send initial message
-  res.write(`event: log\ndata: {'message': 'Connected to event stream', 'level': 'info'}\n\n`);
+  res.write('event: log\ndata: {"message": "Connected to event stream", "level": "info"}\n\n');
   
+  // Attach real-time logger transport for this connection only
+  const transport = logger.addRealTimeTransport(function(info) {
+    const { level, message, timestamp, metadata } = info;
+    const logEvent = { 
+      timestamp, 
+      level, 
+      message,
+      metadata
+    };
+    
+    // Emit the log event for real-time streaming
+    eventBus.emit('log', logEvent);
+    
+    // Detect sync completion events and emit them
+    if (message.includes('sync completed') || message.includes('Published to Webflow')) {
+      eventBus.emit('sync-completed');
+    }
+  });
+
   // Create event listeners
   const logListener = (logData) => {
     const safeLogData = {
@@ -286,6 +291,8 @@ app.get('/api/events', (req, res) => {
     // Remove event listeners
     eventBus.removeListener('log', logListener);
     eventBus.removeListener('sync-completed', syncCompletedListener);
+    // Remove transport to avoid retaining memory
+    logger.removeRealTimeTransport(transport);
     res.end();
   });
 });
@@ -332,8 +339,8 @@ app.use((err, req, res, next) => {
 
 // Schedule periodic sync with configurable interval
 const syncIntervalMinutes = Math.ceil(config.sync.interval / 60000);
-const incrementalSyncCronPattern = `*/${syncIntervalMinutes} * * * *`;
-const fullSyncCronPattern = `0 7 * * *`; // Daily at 7 AM
+const incrementalSyncCronPattern = '*/' + syncIntervalMinutes + ' * * * *';
+const fullSyncCronPattern = '0 7 * * *'; // Daily at 7 AM
 logger.info(`Setting up incremental job sync schedule: ${incrementalSyncCronPattern} (${config.sync.enableScheduledSync ? 'enabled' : 'disabled'})`);
 logger.info(`Setting up daily full job sync schedule: ${fullSyncCronPattern} (${config.sync.enableScheduledSync ? 'enabled' : 'disabled'})`);
 
@@ -347,7 +354,7 @@ let scheduledFullJobsSync = null;
 
 if (isServerless) {
   logger.info('Serverless environment detected - using platform cron jobs instead of Node.js cron');
-  logger.info('Vercel cron jobs configured: /api/cron/incremental-sync (every 5 min) and /api/cron/full-sync (daily 7 AM)');
+  logger.info('Vercel cron jobs configured: /api/cron/incremental-sync (every 2 hours) and /api/cron/full-sync (daily 7 AM)');
 } else {
   // Create the scheduler for incremental syncs (only for non-serverless)
   scheduledIncrementalJobsSync = cron.schedule(incrementalSyncCronPattern, async () => {

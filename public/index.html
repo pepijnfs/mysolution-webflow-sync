@@ -938,7 +938,7 @@
         // Simple uptime counter based on deployment time
         let deploymentTime = null;
         let deploymentUnixTimestamp = null;
-        let syncIntervalMinutes = 5; // Updated to 5 minutes
+        let syncIntervalMinutes = 120; // Default to 120 minutes (2 hours)
         
         // Fetch deployment time from server
         async function fetchDeploymentTime() {

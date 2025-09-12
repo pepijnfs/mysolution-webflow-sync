@@ -227,6 +227,17 @@ const addRealTimeTransport = (callback) => {
   return realTimeTransport;
 };
 
+// Method to remove a previously added real-time transport
+const removeRealTimeTransport = (transportInstance) => {
+  try {
+    if (transportInstance) {
+      winstonLogger.remove(transportInstance);
+    }
+  } catch (err) {
+    // Swallow errors to avoid impacting runtime
+  }
+};
+
 // Create properly exported logger with all functions
 const loggerInstance = {
   error: (...args) => winstonLogger.error(...args),
@@ -245,6 +256,7 @@ const loggerInstance = {
   },
   
   addRealTimeTransport,
+  removeRealTimeTransport,
   
   // Add namespace methods for convenience
   setRequestId: (req) => namespace.setRequestId(req),

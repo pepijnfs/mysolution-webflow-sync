@@ -34,10 +34,12 @@ async function incrementalJobsSync() {
     // Perform standard incremental sync
     const syncResults = await syncJobs(true, syncId);
     
-    // After regular sync, also check for jobs that need to be unpublished
-    // This is necessary because changing publication criteria fields may not update LastModifiedDate
-    console.log('\n=== 🔍 ADDITIONAL CHECK: Scanning for jobs that need to be unpublished ===');
-    logger.info('Performing additional check for jobs that need to be unpublished');
+    // After regular sync, optionally check for jobs that need to be unpublished
+    // Guarded by ENABLE_UNPUBLISH_SCAN (defaults to true) to reduce memory when disabled
+    const enableUnpublishScan = (process.env.ENABLE_UNPUBLISH_SCAN || 'true') === 'true';
+    if (enableUnpublishScan) {
+      console.log('\n=== 🔍 ADDITIONAL CHECK: Scanning for jobs that need to be unpublished ===');
+      logger.info('Performing additional check for jobs that need to be unpublished');
     
     // 1. Get all jobs from Mysolution (regardless of modification date)
     console.log('📥 Fetching all jobs from Mysolution for publication check...');
@@ -138,9 +140,13 @@ async function incrementalJobsSync() {
       if (unpublishFailed > 0) {
         console.log(`❌ FAILED UNPUBLISHES: ${unpublishFailed} (check logs for details)`);
       }
+      } else {
+        console.log('\n=== ✓ NO JOBS NEED TO BE UNPUBLISHED ===');
+        console.log('ℹ️ All jobs in Webflow meet current publication criteria');
+      }
     } else {
-      console.log('\n=== ✓ NO JOBS NEED TO BE UNPUBLISHED ===');
-      console.log('ℹ️ All jobs in Webflow meet current publication criteria');
+      console.log('\n=== 🔕 UNPUBLISH SCAN DISABLED ===');
+      logger.info('Unpublish scan disabled by ENABLE_UNPUBLISH_SCAN');
     }
     
     return syncResults;
