@@ -21,6 +21,8 @@ class WebflowAPI {
     this.processing = false;
     this.requestsThisMinute = 0;
     this.rateLimitResetTime = Date.now() + 60000; // 1 minute from now
+    this.lastRequestTime = 0;
+    this.perRequestIntervalMs = Math.max(1, Math.ceil(60000 / this.rateLimit));
     
     if (!this.apiKey) {
       logger.error('Webflow API key is not set');
@@ -50,22 +52,10 @@ class WebflowAPI {
     // Add response interceptor for logging and rate limit tracking
     this.client.interceptors.response.use(
       response => {
-        // Track rate limits from response headers if available
-        if (response.headers['x-ratelimit-remaining']) {
-          const remaining = parseInt(response.headers['x-ratelimit-remaining'], 10);
-          // Calculate current request count based on remaining 
-          this.requestsThisMinute = this.rateLimit - remaining;
-          // Make sure it's at least 1 (for the current request)
-          if (this.requestsThisMinute < 1) this.requestsThisMinute = 1;
-        } else {
-          // If no header, just increment the counter by 1
-          this.requestsThisMinute += 1;
-        }
-        
+        // Avoid relying on provider headers; we enforce our own pacing
         if (response.headers['x-ratelimit-reset']) {
           this.rateLimitResetTime = parseInt(response.headers['x-ratelimit-reset'], 10) * 1000;
         }
-        
         return response;
       },
       error => {
@@ -173,6 +163,13 @@ class WebflowAPI {
       this.rateLimitResetTime = now + 60000;
     }
     
+    // Enforce per-request interval pacing (hard cap)
+    const sinceLast = now - this.lastRequestTime;
+    const spacingWait = Math.max(this.perRequestIntervalMs - sinceLast, 0);
+    if (spacingWait > 0) {
+      await new Promise(resolve => setTimeout(resolve, spacingWait));
+    }
+    
     // Process next request
     const { requestFn, resolve, reject } = this.requestQueue.shift();
     
@@ -180,6 +177,7 @@ class WebflowAPI {
       // Execute the request and increment counter
       this.requestsThisMinute++;
       const result = await requestFn();
+      this.lastRequestTime = Date.now();
       resolve(result);
     } catch (error) {
       reject(error);
