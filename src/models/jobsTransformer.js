@@ -8,8 +8,7 @@ import webflowAPI from '../api/webflow.js';
  */
 export async function transformMysolutionToWebflow(mysolutionJob) {
   try {
-    console.log('===== TRANSFORM MYSOLUTION TO WEBFLOW =====');
-    console.log('INPUT Mysolution Job Data:', JSON.stringify(mysolutionJob, null, 2));
+    logger.debug('TRANSFORM: start');
 
     // Check for valid job data with consistent ID handling (Mysolution uses capital 'I')
     if (!mysolutionJob) {
@@ -23,7 +22,7 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
     }
 
     // Log the job ID for debugging
-    console.log(`Processing job with Mysolution ID: ${jobId}`);
+    logger.debug(`Processing job with Mysolution ID: ${jobId}`);
 
     // List of valid options for key fields (these must match exactly what Webflow accepts)
     const validOptions = {
@@ -73,7 +72,7 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
       ]
     };
 
-    console.log('Using valid options:', JSON.stringify(validOptions, null, 2));
+    logger.silly('Using valid options (suppressed in normal levels)');
 
     // Handle salary mapping - map to the closest valid option
     let vacatureSalaris = validOptions.salaryRanges[0]; // Default to 'In overleg'
@@ -214,8 +213,8 @@ export async function transformMysolutionToWebflow(mysolutionJob) {
                   if (rangeParts.length !== 2) continue;
                   
                   const rangeLower = parseInt(rangeParts[0].replace(/\./g, ''), 10);
-                  const rangeMiddle = (parseInt(rangeParts[0].replace(/\./g, ''), 10) + 
-                                     parseInt(rangeParts[1].replace(/\./g, ''), 10)) / 2;
+                  const rangeUpper = parseInt(rangeParts[1].replace(/\./g, ''), 10);
+                  const rangeMiddle = (rangeLower + rangeUpper) / 2;
                   
                   // Calculate distance to the middle of the range
                   const distance = Math.abs(rangeMiddle - salaryNum);
@@ -697,21 +696,6 @@ function createSlug(title) {
 }
 
 /**
- * Map Mysolution job status to Webflow status
- * @param {string} status - Mysolution job status
- * @returns {string} - Webflow job status
- */
-function mapJobStatus(status) {
-  const statusMap = {
-    'open': 'active',
-    'closed': 'inactive',
-    'archived': 'draft'
-  };
-  
-  return statusMap[status] || 'draft';
-}
-
-/**
  * Map Webflow job status to Mysolution status
  * @param {string} status - Webflow job status
  * @returns {string} - Mysolution job status
@@ -1097,4 +1081,4 @@ function cleanExcerpt(excerpt) {
   
   logger.debug(`Cleaned job excerpt from "${excerpt}" to "${cleanedExcerpt}"`);
   return cleanedExcerpt;
-} 
+}

@@ -24,7 +24,7 @@ The following environment variables must be set in your Vercel project settings 
 - `WEBFLOW_CANDIDATES_COLLECTION_ID`: ID of the Webflow collection for candidates (must be a valid ID, not a placeholder)
 - `WEBFLOW_SECTORS_COLLECTION_ID`: ID of the Webflow collection for sectors
 - `WEBFLOW_API_TIMEOUT`: Set to `30000` (30 seconds)
-- `WEBFLOW_RATE_LIMIT`: Set to `60` (requests per minute)
+- `WEBFLOW_RATE_LIMIT`: Set to `20` (requests per minute)
 - `WEBFLOW_AUTO_PUBLISH`: Set to `false` initially (can be enabled later)
 
 ### Sync Settings

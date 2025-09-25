@@ -109,10 +109,10 @@ const transports = [];
 // Add console transport if enabled
 if (config.logging.console) {
   transports.push(new winston.transports.Console({
-    level: config.logging.level,
+    level: config.logging.minimalConsole ? 'error' : config.logging.level,
     format: winston.format.combine(
       winston.format.colorize(),
-      customFormat
+      config.logging.minimalConsole ? winston.format.simple() : customFormat
     )
   }));
 }

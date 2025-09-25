@@ -1263,8 +1263,25 @@
                 } else {
                     // Revert toggle if request failed
                     autoPublishToggle.checked = !enabled;
-                    const errorData = await response.json();
-                    addLogEntry(`Failed to ${enabled ? 'enable' : 'disable'} auto-publish: ${errorData.message || 'Unknown error'}`, 'error');
+                    let errorMessage = `HTTP ${response.status}`;
+                    try {
+                        const ct = response.headers.get('content-type') || '';
+                        if (ct.includes('application/json')) {
+                            const errorData = await response.json();
+                            errorMessage = errorData.message || JSON.stringify(errorData);
+                        } else {
+                            const text = await response.text();
+                            errorMessage = text ? text.slice(0, 500) : errorMessage;
+                        }
+                    } catch (e) {
+                        try {
+                            const text = await response.text();
+                            errorMessage = text ? text.slice(0, 500) : e.message;
+                        } catch (_) {
+                            errorMessage = e.message;
+                        }
+                    }
+                    addLogEntry(`Failed to ${enabled ? 'enable' : 'disable'} auto-publish: ${errorMessage}`, 'error');
                 }
             } catch (error) {
                 console.error(`Error ${enabled ? 'enabling' : 'disabling'} auto-publish:`, error);
@@ -1321,8 +1338,25 @@
                     // Refresh all other UI data 
                     loadJobCounts();
                 } else {
-                    const errorData = await response.json();
-                    addLogEntry(`Sync failed: ${errorData.message || 'Unknown error'}`, 'error');
+                    let errorMessage = `HTTP ${response.status}`;
+                    try {
+                        const ct = response.headers.get('content-type') || '';
+                        if (ct.includes('application/json')) {
+                            const errorData = await response.json();
+                            errorMessage = errorData.message || JSON.stringify(errorData);
+                        } else {
+                            const text = await response.text();
+                            errorMessage = text ? text.slice(0, 500) : errorMessage;
+                        }
+                    } catch (e) {
+                        try {
+                            const text = await response.text();
+                            errorMessage = text ? text.slice(0, 500) : e.message;
+                        } catch (_) {
+                            errorMessage = e.message;
+                        }
+                    }
+                    addLogEntry(`Sync failed: ${errorMessage}`, 'error');
                 }
             } catch (error) {
                 console.error('Error triggering job sync:', error);
@@ -1381,8 +1415,25 @@
                     // Refresh all other UI data
                     loadJobCounts();
                 } else {
-                    const errorData = await response.json();
-                    addLogEntry(`Sync failed: ${errorData.message || 'Unknown error'}`, 'error');
+                    let errorMessage = `HTTP ${response.status}`;
+                    try {
+                        const ct = response.headers.get('content-type') || '';
+                        if (ct.includes('application/json')) {
+                            const errorData = await response.json();
+                            errorMessage = errorData.message || JSON.stringify(errorData);
+                        } else {
+                            const text = await response.text();
+                            errorMessage = text ? text.slice(0, 500) : errorMessage;
+                        }
+                    } catch (e) {
+                        try {
+                            const text = await response.text();
+                            errorMessage = text ? text.slice(0, 500) : e.message;
+                        } catch (_) {
+                            errorMessage = e.message;
+                        }
+                    }
+                    addLogEntry(`Sync failed: ${errorMessage}`, 'error');
                 }
             } catch (error) {
                 console.error('Error triggering full sync:', error);
@@ -1424,8 +1475,25 @@
                             new Date(data.data.publishTime).toLocaleString();
                     }
                 } else {
-                    const errorData = await response.json();
-                    addLogEntry(`Publish failed: ${errorData.message || 'Unknown error'}`, 'error');
+                    let errorMessage = `HTTP ${response.status}`;
+                    try {
+                        const ct = response.headers.get('content-type') || '';
+                        if (ct.includes('application/json')) {
+                            const errorData = await response.json();
+                            errorMessage = errorData.message || JSON.stringify(errorData);
+                        } else {
+                            const text = await response.text();
+                            errorMessage = text ? text.slice(0, 500) : errorMessage;
+                        }
+                    } catch (e) {
+                        try {
+                            const text = await response.text();
+                            errorMessage = text ? text.slice(0, 500) : e.message;
+                        } catch (_) {
+                            errorMessage = e.message;
+                        }
+                    }
+                    addLogEntry(`Publish failed: ${errorMessage}`, 'error');
                 }
             } catch (error) {
                 console.error('Error triggering publish:', error);

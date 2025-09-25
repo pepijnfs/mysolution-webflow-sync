@@ -107,3 +107,4 @@ src/test/sync-specific-job.js
 
 # New entries
 mysolution-job-*.json 
+.vercel

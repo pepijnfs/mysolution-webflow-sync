@@ -40,106 +40,106 @@ async function incrementalJobsSync() {
     if (enableUnpublishScan) {
       console.log('\n=== 🔍 ADDITIONAL CHECK: Scanning for jobs that need to be unpublished ===');
       logger.info('Performing additional check for jobs that need to be unpublished');
-    
-    // 1. Get all jobs from Mysolution (regardless of modification date)
-    console.log('📥 Fetching all jobs from Mysolution for publication check...');
-    const allMysolutionJobs = await mysolutionAPI.getJobs();
-    console.log(`📊 Retrieved ${allMysolutionJobs.length} total jobs from Mysolution`);
-    
-    // 2. Filter jobs that meet publication criteria
-    const publishableJobIds = new Set(
-      allMysolutionJobs
-        .filter(job => shouldJobBePublished(job))
-        .map(job => job.Id)
-    );
-    console.log(`📊 ${publishableJobIds.size} jobs meet publication criteria`);
-    
-    // 3. Get all jobs from Webflow that are currently published (not archived)
-    console.log('📥 Retrieving current jobs from Webflow...');
-    console.log('Using getAllJobs() to ensure all jobs are retrieved with pagination...');
-    
-    // Use getAllJobs instead of getJobs to ensure we get all jobs, not just the first 100
-    const allWebflowJobs = await webflowAPI.getAllJobs();
-    
-    // Filter to get only non-archived jobs
-    const webflowJobs = allWebflowJobs.filter(job => !job.isArchived);
-    
-    logger.info(`Fetched ${allWebflowJobs.length} total jobs from Webflow, ${webflowJobs.length} are not archived`);
-    console.log(`📊 Found ${webflowJobs.length} published jobs in Webflow out of ${allWebflowJobs.length} total`);
-    
-    // 4. Find jobs in Webflow that should no longer be published
-    const jobsToUnpublish = webflowJobs.filter(job => {
-      const mysolutionId = job.fieldData && job.fieldData['mysolution-id'];
-      return mysolutionId && !publishableJobIds.has(mysolutionId);
-    });
-    
-    if (jobsToUnpublish.length > 0) {
-      console.log(`\n=== 🗃️ FOUND ${jobsToUnpublish.length} JOBS TO UNPUBLISH ===`);
-      logger.info(`Found ${jobsToUnpublish.length} jobs that need to be unpublished based on publication criteria`);
-      
-      // 5. Process jobs to unpublish
-      const unpublishPromises = jobsToUnpublish.map(async (job) => {
-        try {
-          // Find the corresponding Mysolution job to determine the reason
-          const mysolutionId = job.fieldData['mysolution-id'];
-          const mysolutionJob = allMysolutionJobs.find(mj => mj.Id === mysolutionId);
-          let archiveReason = 'Unknown';
-          
-          if (mysolutionJob) {
-            if (mysolutionJob.msf__Status__c !== 'Online') {
-              archiveReason = `Status changed to "${mysolutionJob.msf__Status__c}"`;
-            } else if (!mysolutionJob.msf__Show_On_Website__c) {
-              archiveReason = 'Show on Website disabled';
-            } else if (mysolutionJob.msf__On_Website_To__c && new Date(mysolutionJob.msf__On_Website_To__c) < new Date()) {
-              archiveReason = `End date (${mysolutionJob.msf__On_Website_To__c}) expired`;
-            }
-          }
-          
-          console.log(`🗃️ Archiving job "${job.name}" (ID: ${job.id}) from Webflow - Reason: ${archiveReason}`);
-          
-          // Simply mark the job as archived in Webflow
-          await webflowAPI.archiveJob(job.id);
-          
-          console.log(`✅ Successfully archived job: "${job.name}"`);
-          return { id: job.id, success: true };
-        } catch (error) {
-          console.error(`❌ Error archiving job "${job.name}" (ID: ${job.id}): ${error.message}`);
-          logger.error(`Error archiving job ${job.id}:`, error);
-          return { id: job.id, success: false, error: error.message };
-        }
+
+      // 1. Get all jobs from Mysolution (regardless of modification date)
+      console.log('📥 Fetching all jobs from Mysolution for publication check...');
+      const allMysolutionJobs = await mysolutionAPI.getJobs();
+      console.log(`📊 Retrieved ${allMysolutionJobs.length} total jobs from Mysolution`);
+
+      // 2. Filter jobs that meet publication criteria
+      const publishableJobIds = new Set(
+        allMysolutionJobs
+          .filter(job => shouldJobBePublished(job))
+          .map(job => job.Id)
+      );
+      console.log(`📊 ${publishableJobIds.size} jobs meet publication criteria`);
+
+      // 3. Get all jobs from Webflow that are currently published (not archived)
+      console.log('📥 Retrieving current jobs from Webflow...');
+      console.log('Using getAllJobs() to ensure all jobs are retrieved with pagination...');
+
+      // Use getAllJobs instead of getJobs to ensure we get all jobs, not just the first 100
+      const allWebflowJobs = await webflowAPI.getAllJobs();
+
+      // Filter to get only non-archived jobs
+      const webflowJobs = allWebflowJobs.filter(job => !job.isArchived);
+
+      logger.info(`Fetched ${allWebflowJobs.length} total jobs from Webflow, ${webflowJobs.length} are not archived`);
+      console.log(`📊 Found ${webflowJobs.length} published jobs in Webflow out of ${allWebflowJobs.length} total`);
+
+      // 4. Find jobs in Webflow that should no longer be published
+      const jobsToUnpublish = webflowJobs.filter(job => {
+        const mysolutionId = job.fieldData && job.fieldData['mysolution-id'];
+        return mysolutionId && !publishableJobIds.has(mysolutionId);
       });
-      
-      // Wait for all unpublish operations to complete
-      const unpublishResults = await Promise.allSettled(unpublishPromises);
-      
-      // Count successes and failures
-      const unpublishSuccessful = unpublishResults.filter(r => r.status === 'fulfilled' && r.value.success).length;
-      const unpublishFailed = unpublishResults.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length;
-      
-      // Add results to sync summary
-      syncResults.unpublishSuccessful = unpublishSuccessful;
-      syncResults.unpublishFailed = unpublishFailed;
-      
-      logger.info(`Job unpublishing completed. ${unpublishSuccessful} jobs unpublished successfully, ${unpublishFailed} jobs failed to unpublish`);
-      
-      // Publish changes to Webflow if any jobs were successfully unpublished
-      if (unpublishSuccessful > 0) {
-        console.log('\n=== 📡 PUBLISHING CHANGES ===');
-        console.log('ℹ️ Attempting to publish unpublishing changes to make them visible on the website...');
-        try {
-          await publishingService.publishIfEnabled(`Unpublished ${unpublishSuccessful} jobs due to publication criteria changes`);
-        } catch (error) {
-          console.error('❌ Error publishing site changes:', error.message);
-          logger.error('Error publishing site changes after unpublishing jobs:', error);
+
+      if (jobsToUnpublish.length > 0) {
+        console.log(`\n=== 🗃️ FOUND ${jobsToUnpublish.length} JOBS TO UNPUBLISH ===`);
+        logger.info(`Found ${jobsToUnpublish.length} jobs that need to be unpublished based on publication criteria`);
+
+        // 5. Process jobs to unpublish
+        const unpublishPromises = jobsToUnpublish.map(async (job) => {
+          try {
+            // Find the corresponding Mysolution job to determine the reason
+            const mysolutionId = job.fieldData['mysolution-id'];
+            const mysolutionJob = allMysolutionJobs.find(mj => mj.Id === mysolutionId);
+            let archiveReason = 'Unknown';
+
+            if (mysolutionJob) {
+              if (mysolutionJob.msf__Status__c !== 'Online') {
+                archiveReason = `Status changed to "${mysolutionJob.msf__Status__c}"`;
+              } else if (!mysolutionJob.msf__Show_On_Website__c) {
+                archiveReason = 'Show on Website disabled';
+              } else if (mysolutionJob.msf__On_Website_To__c && new Date(mysolutionJob.msf__On_Website_To__c) < new Date()) {
+                archiveReason = `End date (${mysolutionJob.msf__On_Website_To__c}) expired`;
+              }
+            }
+
+            console.log(`🗃️ Archiving job "${job.name}" (ID: ${job.id}) from Webflow - Reason: ${archiveReason}`);
+
+            // Simply mark the job as archived in Webflow
+            await webflowAPI.archiveJob(job.id);
+
+            console.log(`✅ Successfully archived job: "${job.name}"`);
+            return { id: job.id, success: true };
+          } catch (error) {
+            console.error(`❌ Error archiving job "${job.name}" (ID: ${job.id}): ${error.message}`);
+            logger.error(`Error archiving job ${job.id}:`, error);
+            return { id: job.id, success: false, error: error.message };
+          }
+        });
+
+        // Wait for all unpublish operations to complete
+        const unpublishResults = await Promise.allSettled(unpublishPromises);
+
+        // Count successes and failures
+        const unpublishSuccessful = unpublishResults.filter(r => r.status === 'fulfilled' && r.value.success).length;
+        const unpublishFailed = unpublishResults.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length;
+
+        // Add results to sync summary
+        syncResults.unpublishSuccessful = unpublishSuccessful;
+        syncResults.unpublishFailed = unpublishFailed;
+
+        logger.info(`Job unpublishing completed. ${unpublishSuccessful} jobs unpublished successfully, ${unpublishFailed} jobs failed to unpublish`);
+
+        // Publish changes to Webflow if any jobs were successfully unpublished
+        if (unpublishSuccessful > 0) {
+          console.log('\n=== 📡 PUBLISHING CHANGES ===');
+          console.log('ℹ️ Attempting to publish unpublishing changes to make them visible on the website...');
+          try {
+            await publishingService.publishIfEnabled(`Unpublished ${unpublishSuccessful} jobs due to publication criteria changes`);
+          } catch (error) {
+            console.error('❌ Error publishing site changes:', error.message);
+            logger.error('Error publishing site changes after unpublishing jobs:', error);
+          }
         }
-      }
-      
-      // Print final summary for unpublish operations
-      console.log('\n====== 🏁 UNPUBLISH RESULTS ======');
-      console.log(`📊 UNPUBLISHED JOBS: ${unpublishSuccessful} of ${jobsToUnpublish.length} processed successfully`);
-      if (unpublishFailed > 0) {
-        console.log(`❌ FAILED UNPUBLISHES: ${unpublishFailed} (check logs for details)`);
-      }
+
+        // Print final summary for unpublish operations
+        console.log('\n====== 🏁 UNPUBLISH RESULTS ======');
+        console.log(`📊 UNPUBLISHED JOBS: ${unpublishSuccessful} of ${jobsToUnpublish.length} processed successfully`);
+        if (unpublishFailed > 0) {
+          console.log(`❌ FAILED UNPUBLISHES: ${unpublishFailed} (check logs for details)`);
+        }
       } else {
         console.log('\n=== ✓ NO JOBS NEED TO BE UNPUBLISHED ===');
         console.log('ℹ️ All jobs in Webflow meet current publication criteria');
@@ -324,13 +324,12 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
     logger.info(`After publication criteria filtering: ${mysolutionJobs.length} jobs will be published`);
     
     // Fetch existing jobs from Webflow
-    console.log('📥 Retrieving current jobs from Webflow website...');
-    console.log('Using getAllJobs() to ensure all jobs are retrieved with pagination...');
+    logger.info('Retrieving current jobs from Webflow (for incremental mapping)');
     
     // Use getAllJobs instead of getJobs to ensure we get all jobs, not just the first 100
     const webflowJobs = await webflowAPI.getAllJobs();
     logger.info(`Fetched ${webflowJobs.length} jobs from Webflow using pagination`);
-    console.log(`📊 Current Webflow website job count: ${webflowJobs.length}`);
+    logger.info(`Current Webflow job count: ${webflowJobs.length}`);
     
     // Create a map of existing jobs in Webflow for quick lookup
     const webflowJobsMap = new Map();
@@ -343,17 +342,17 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
         console.log(`⚠️ Webflow job "${job.name}" has no Mysolution ID`);
       }
     });
-    console.log(`📋 Matched ${webflowJobsMap.size} of ${webflowJobs.length} Webflow jobs with Mysolution IDs`);
+    logger.info(`Matched ${webflowJobsMap.size}/${webflowJobs.length} Webflow jobs by mysolution-id`);
     
     // Process each job from Mysolution
-    console.log(`\n=== 🔄 BEGINNING JOB PROCESSING (${mysolutionJobs.length} jobs) ===`);
+    logger.info(`Starting processing of ${mysolutionJobs.length} jobs`);
     
     const syncPromises = mysolutionJobs.map(async (mysolutionJob) => {
       try {
         // Ensure consistent ID handling - Mysolution uses capital 'I' in Id
         const jobId = mysolutionJob.Id;
         
-        console.log(`\n=== 🔄 Processing job: "${mysolutionJob.Name || 'No Name'}" (ID: ${jobId}) ===`);
+        logger.debug(`Processing job: ${mysolutionJob.Name || 'No Name'} (${jobId})`);
         
         // Log the modification date for debugging
         if (mysolutionJob.LastModifiedDate) {
@@ -368,7 +367,7 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
           console.log(`🔒 Job ${jobId} is marked as INTERNAL - will use "Interne Vacature" sector`);
         }
         
-        console.log('🔍 Converting job data to Webflow format...');
+        logger.debug('Converting job data to Webflow format');
         
         // Transform job to Webflow format - now returns a Promise
         const webflowJobData = await transformMysolutionToWebflow(mysolutionJob);
@@ -385,9 +384,18 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
         }
         
         // Use standardized create/update method for consistent field processing
-        console.log(`🔄 PROCESSING job "${mysolutionJob.Name}" in Webflow (ID: ${jobId})`);
-        const result = await webflowAPI.createOrUpdateJobByMysolutionId(jobId, webflowJobData);
-        console.log(`✅ Job ${result.action} successfully!`);
+        logger.debug(`Upserting job in Webflow: ${mysolutionJob.Name} (${jobId})`);
+        // Avoid extra API lookups by passing existing Webflow job ID and skipping sector re-validation
+        const existingJob = webflowJobsMap.get(jobId);
+        const result = await webflowAPI.createOrUpdateJobByMysolutionId(
+          jobId,
+          webflowJobData,
+          {
+            existingJobId: existingJob ? existingJob.id : undefined,
+            skipSectorValidation: true
+          }
+        );
+        logger.info(`Job ${jobId} ${result.action}`);
         
         return { id: jobId, success: true, result, modified: mysolutionJob.LastModifiedDate };
       } catch (error) {

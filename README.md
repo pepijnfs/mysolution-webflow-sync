@@ -485,7 +485,7 @@ WEBFLOW_JOBS_COLLECTION_ID=your_webflow_jobs_collection_id
 WEBFLOW_CANDIDATES_COLLECTION_ID=your_webflow_candidates_collection_id
 WEBFLOW_SECTORS_COLLECTION_ID=your_webflow_sectors_collection_id
 WEBFLOW_API_TIMEOUT=30000
-WEBFLOW_RATE_LIMIT=60
+WEBFLOW_RATE_LIMIT=20
 WEBFLOW_AUTO_PUBLISH=false
 
 # Sync Settings

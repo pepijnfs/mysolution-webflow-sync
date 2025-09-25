@@ -86,7 +86,7 @@ class WebflowAPI {
           
           const humanReadableMsg = `Webflow API rate limit reached! The API allows ${this.rateLimit} requests per minute, but this limit has been exceeded. The system will automatically resume at ${resetDate.toLocaleTimeString()}. This is normal during large syncs and the system will automatically retry.`;
           
-          console.log('⚠️ ' + humanReadableMsg);
+          // Reduce console noise; keep a single structured log
           logger.warn(humanReadableMsg, {
             ...errorInfo,
             rateLimitReset: resetDate.toISOString(),
@@ -955,7 +955,7 @@ class WebflowAPI {
    * @param {object} jobData - Job data
    * @returns {Promise<object>} - Created or updated job
    */
-  async createOrUpdateJobByMysolutionId(mysolutionId, jobData) {
+  async createOrUpdateJobByMysolutionId(mysolutionId, jobData, options = {}) {
     if (!mysolutionId) {
       throw new Error('Mysolution ID is required');
     }
@@ -968,12 +968,14 @@ class WebflowAPI {
       }
       
       // Additional validation for dropdown fields
+      // IMPORTANT: This will skip fields explicitly set to null (to allow clearing on update)
       this._validateDropdownFields(jobData);
       
       // Validate and clean up field data to prevent validation errors
-      // Remove any null or undefined values
+      // Remove any null or undefined values, EXCEPT fields we intentionally clear on update
+      const nullableOptionFields = ['vacature-salaris', 'hourly'];
       Object.keys(jobData).forEach(key => {
-        if (jobData[key] === null || jobData[key] === undefined) {
+        if ((jobData[key] === null || jobData[key] === undefined) && !nullableOptionFields.includes(key)) {
           logger.debug(`Removing null/undefined field ${key} from job data`);
           delete jobData[key];
         }
@@ -989,7 +991,9 @@ class WebflowAPI {
       });
       
       // Check if sector reference is properly formatted
-      if (jobData['job-companies'] && typeof jobData['job-companies'] === 'string') {
+      // Allow skipping remote validation to reduce API calls during large syncs
+      const skipSectorValidation = options.skipSectorValidation === true;
+      if (!skipSectorValidation && jobData['job-companies'] && typeof jobData['job-companies'] === 'string') {
         const sectorId = jobData['job-companies'];
         logger.debug(`Found sector ID in jobData: ${sectorId}`);
         
@@ -1048,12 +1052,21 @@ class WebflowAPI {
         validatedJobData['job-companies'] = internalSectorId;
       }
       
-      // Find existing job
-      const existingJob = await this.findJobByMysolutionId(mysolutionId);
+      // Find existing job (or use the provided ID to avoid extra API calls)
+      const existingJob = options.existingJobId
+        ? { id: options.existingJobId }
+        : await this.findJobByMysolutionId(mysolutionId);
       
       try {
         if (existingJob) {
           logger.debug(`Updating existing job with Mysolution ID ${mysolutionId}`);
+          // Preserve explicit nulls for option fields so update can clear them in Webflow
+          const nullableOptionFields = ['vacature-salaris', 'hourly'];
+          nullableOptionFields.forEach(field => {
+            if (Object.prototype.hasOwnProperty.call(jobData, field) && jobData[field] === null) {
+              validatedJobData[field] = null;
+            }
+          });
           return this.updateJob(existingJob.id, validatedJobData);
         } else {
           logger.debug(`Creating new job with Mysolution ID ${mysolutionId}`);

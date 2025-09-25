@@ -10,11 +10,6 @@
       "use": "@vercel/static"
     }
   ],
-  "functions": {
-    "api/**": {
-      "excludeFiles": "{coverage/**,logs/**,docs/**,testcv.pdf,debug-*.json,data/sync-state.json}"
-    }
-  },
   "crons": [
     {
       "path": "/api/cron/incremental-sync",

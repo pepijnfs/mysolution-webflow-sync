@@ -101,6 +101,8 @@ const config = {
     // Request ID settings
     requestIdHeader: process.env.REQUEST_ID_HEADER || 'x-request-id',
     generateRequestId: process.env.GENERATE_REQUEST_ID !== 'false',
+    // Minimal console mode: drastically reduce console noise (file logs remain structured)
+    minimalConsole: process.env.MINIMAL_LOG_CONSOLE === 'true',
   },
   
   // Get a nested config value using dot notation
