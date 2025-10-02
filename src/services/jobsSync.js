@@ -5,6 +5,7 @@ import { transformMysolutionToWebflow } from '../models/jobsTransformer.js';
 import syncStateStore from '../utils/syncStateStore.js';
 import publishingService from './publishingService.js';
 import { shouldJobBePublished } from '../utils/jobUtils.js';
+import config from '../utils/config.js';
 
 /**
  * Synchronize all jobs from Mysolution to Webflow
@@ -26,17 +27,18 @@ async function jobsSync() {
  * Synchronize only changed jobs since last sync
  * @returns {Object} Sync result summary
  */
-async function incrementalJobsSync() {
+async function incrementalJobsSync(options = {}) {
   const syncId = `inc-sync-${Date.now()}`;
   try {
     logger.info('Starting incremental jobs synchronization process', { syncId });
     
     // Perform standard incremental sync
-    const syncResults = await syncJobs(true, syncId);
+    const syncResults = await syncJobs(true, syncId, options);
     
     // After regular sync, optionally check for jobs that need to be unpublished
     // Guarded by ENABLE_UNPUBLISH_SCAN (defaults to true) to reduce memory when disabled
-    const enableUnpublishScan = (process.env.ENABLE_UNPUBLISH_SCAN || 'true') === 'true';
+    const disableUnpublishScan = options.disableUnpublishScan === true;
+    const enableUnpublishScan = !disableUnpublishScan && (process.env.ENABLE_UNPUBLISH_SCAN || 'true') === 'true';
     if (enableUnpublishScan) {
       console.log('\n=== 🔍 ADDITIONAL CHECK: Scanning for jobs that need to be unpublished ===');
       logger.info('Performing additional check for jobs that need to be unpublished');
@@ -163,16 +165,36 @@ async function incrementalJobsSync() {
  * @param {string} syncId - Unique ID for this sync operation
  * @returns {Object} Sync result summary
  */
-async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) {
+async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`, options = {}) {
   console.log(`DEBUG: syncJobs called with syncId: ${syncId}`);
   
+  let heartbeat;
   try {
+    // Heartbeat log near typical serverless timeout
+    const heartbeatMs = parseInt(process.env.SYNC_HEARTBEAT_MS || '45000', 10);
+    heartbeat = setTimeout(() => {
+      console.log(`⏳ HEARTBEAT: Sync ${syncId} still running after ${heartbeatMs}ms`);
+      try { logger.warn('Heartbeat: sync still running', { syncId }); } catch {}
+    }, heartbeatMs);
+
     console.log(`\n====== 🔄 STARTING JOB SYNC: ${syncId} ======`);
     console.log(`📋 Sync type: ${incrementalOnly ? 'INCREMENTAL (only changed jobs)' : 'FULL (all jobs)'}`);
     console.log(`DEBUG: syncId before API calls: ${syncId}`);
     
     // Get the last successful sync time
-    const lastSyncTime = incrementalOnly ? syncStateStore.getLastSyncTime() : null;
+    let lastSyncTime = incrementalOnly ? syncStateStore.getLastSyncTime() : null;
+    let usedMiniFallback = false;
+    if (incrementalOnly && !lastSyncTime) {
+      const fallbackHours = Number.isFinite(options.miniFallbackWindowHours) ? options.miniFallbackWindowHours : 2;
+      if (fallbackHours > 0) {
+        const now = new Date();
+        const fallbackDate = new Date(now.getTime() - fallbackHours * 60 * 60 * 1000);
+        lastSyncTime = fallbackDate.toISOString();
+        usedMiniFallback = true;
+        console.log(`ℹ️ INCREMENTAL SYNC: No previous lastSync found. Using mini fallback window: now-${fallbackHours}h -> ${lastSyncTime}`);
+        try { logger.info('Using mini fallback window for incremental sync', { syncId, fallbackHours }); } catch {}
+      }
+    }
     
     if (incrementalOnly) {
       if (lastSyncTime) {
@@ -182,7 +204,7 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
         const diffMinutes = Math.floor((now - lastSyncDate) / (1000 * 60));
         console.log(`⏱️ Time since last sync: ${diffMinutes} minutes`);
       } else {
-        console.log('ℹ️ INCREMENTAL SYNC: No previous sync time found. Will perform full sync instead.');
+        console.log('ℹ️ INCREMENTAL SYNC: No previous sync time found and no fallback configured. Will perform full sync instead.');
       }
     } else {
       console.log('ℹ️ FULL SYNC: Will update all jobs regardless of modification time.');
@@ -344,10 +366,12 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
     });
     logger.info(`Matched ${webflowJobsMap.size}/${webflowJobs.length} Webflow jobs by mysolution-id`);
     
-    // Process each job from Mysolution
+    // Process each job from Mysolution with limited concurrency
     logger.info(`Starting processing of ${mysolutionJobs.length} jobs`);
-    
-    const syncPromises = mysolutionJobs.map(async (mysolutionJob) => {
+    const maxConcurrency = Math.max(1, options.concurrency || config.sync.concurrency || 5);
+    const results = [];
+
+    const processJob = async (mysolutionJob) => {
       try {
         // Ensure consistent ID handling - Mysolution uses capital 'I' in Id
         const jobId = mysolutionJob.Id;
@@ -403,10 +427,13 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
         logger.error(`Error processing job ${mysolutionJob.Id}:`, error);
         return { id: mysolutionJob.Id, success: false, error: error.message };
       }
-    });
-    
-    // Wait for all sync operations to complete
-    const results = await Promise.allSettled(syncPromises);
+    };
+
+    for (let i = 0; i < mysolutionJobs.length; i += maxConcurrency) {
+      const batch = mysolutionJobs.slice(i, i + maxConcurrency).map(j => processJob(j));
+      const batchResults = await Promise.allSettled(batch);
+      results.push(...batchResults);
+    }
     
     // Update job modification dates ONLY for successfully processed jobs
     // This ensures we only store dates for jobs we've actually updated
@@ -631,6 +658,9 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
     }
     console.log('====================================================\n');
     
+    // Clear heartbeat timer
+    try { clearTimeout(heartbeat); } catch {}
+
     // Return summary
     return {
       successful,
@@ -642,6 +672,8 @@ async function syncJobs(incrementalOnly = false, syncId = `sync-${Date.now()}`) 
   } catch (error) {
     console.error('Error during jobs sync:', error);
     logger.error('Error during jobs sync:', error);
+    // Best-effort: clear heartbeat timer
+    try { clearTimeout(heartbeat); } catch {}
     throw error;
   }
 }

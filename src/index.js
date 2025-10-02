@@ -115,7 +115,11 @@ app.get('/api/cron/incremental-sync', async (req, res) => {
     const syncId = `vercel-incremental-sync-${Date.now()}`;
     logger.info('Running Vercel cron incremental jobs sync', { syncId });
     
-    const result = await incrementalJobsSync();
+    const result = await incrementalJobsSync({
+      disableUnpublishScan: true,
+      miniFallbackWindowHours: 2,
+      concurrency: parseInt(process.env.CRON_SYNC_CONCURRENCY || process.env.SYNC_CONCURRENCY || '3', 10)
+    });
     
     logger.info('Vercel cron incremental jobs sync completed successfully', { 
       syncId, 
@@ -369,7 +373,11 @@ if (isServerless) {
     logger.info('Running scheduled incremental jobs sync', { syncId });
     
     try {
-      await incrementalJobsSync();
+      await incrementalJobsSync({
+        disableUnpublishScan: true,
+        miniFallbackWindowHours: 2,
+        concurrency: parseInt(process.env.CRON_SYNC_CONCURRENCY || process.env.SYNC_CONCURRENCY || '3', 10)
+      });
       logger.info('Incremental jobs sync completed successfully', { syncId });
     } catch (error) {
       logger.error('Error in scheduled incremental jobs sync', { syncId, error: error.message, stack: error.stack });
@@ -467,7 +475,11 @@ async function runSmartSync() {
     } else {
       // Otherwise, do an incremental sync
       logger.info(`SMART SYNC: Webflow has ${webflowJobCount} jobs, Mysolution has ${mysolutionJobCount} jobs. Running incremental sync.`, { syncId });
-      return await incrementalJobsSync();
+      return await incrementalJobsSync({
+        disableUnpublishScan: true,
+        miniFallbackWindowHours: 2,
+        concurrency: parseInt(process.env.CRON_SYNC_CONCURRENCY || process.env.SYNC_CONCURRENCY || '3', 10)
+      });
     }
   } catch (error) {
     logger.error('Error during smart sync determination', { syncId, error: error.message, stack: error.stack });
