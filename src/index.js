@@ -116,7 +116,10 @@ app.get('/api/cron/incremental-sync', async (req, res) => {
     logger.info('Running Vercel cron incremental jobs sync', { syncId });
     
     const result = await incrementalJobsSync({
-      disableUnpublishScan: true,
+      // Re-enabled: the unpublish scan is the only path that clears jobs removed/turned off
+      // in Mysolution (that endpoint OMITS them rather than returning them with off-flags),
+      // and it fits the serverless budget where the daily full sync does not.
+      disableUnpublishScan: false,
       miniFallbackWindowHours: 2,
       concurrency: parseInt(process.env.CRON_SYNC_CONCURRENCY || process.env.SYNC_CONCURRENCY || '3', 10)
     });
@@ -374,7 +377,10 @@ if (isServerless) {
     
     try {
       await incrementalJobsSync({
-        disableUnpublishScan: true,
+        // Re-enabled: the unpublish scan is the only path that clears jobs removed/turned off
+        // in Mysolution (that endpoint OMITS them rather than returning them with off-flags),
+        // and it fits the serverless budget where the daily full sync does not.
+        disableUnpublishScan: false,
         miniFallbackWindowHours: 2,
         concurrency: parseInt(process.env.CRON_SYNC_CONCURRENCY || process.env.SYNC_CONCURRENCY || '3', 10)
       });
@@ -476,7 +482,10 @@ async function runSmartSync() {
       // Otherwise, do an incremental sync
       logger.info(`SMART SYNC: Webflow has ${webflowJobCount} jobs, Mysolution has ${mysolutionJobCount} jobs. Running incremental sync.`, { syncId });
       return await incrementalJobsSync({
-        disableUnpublishScan: true,
+        // Re-enabled: the unpublish scan is the only path that clears jobs removed/turned off
+        // in Mysolution (that endpoint OMITS them rather than returning them with off-flags),
+        // and it fits the serverless budget where the daily full sync does not.
+        disableUnpublishScan: false,
         miniFallbackWindowHours: 2,
         concurrency: parseInt(process.env.CRON_SYNC_CONCURRENCY || process.env.SYNC_CONCURRENCY || '3', 10)
       });
